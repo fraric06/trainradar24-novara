@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="it">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TrainRadar24 — Novara LIVE</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
@@ -15,29 +16,126 @@
 <div class="brand"><div class="title">Train<span>Radar</span>24</div><div class="sub">NOVARA · TRENI IN TEMPO REALE</div><span class="live" id="liveBadge">● AVVIO</span><span class="clock" id="clock">--:--:--</span></div>
 <div class="stats"><div class="stat"><b id="count" class="g">0</b>treni</div><div class="stat"><b id="yellow" class="y">0</b>5–30 min</div><div class="stat"><b id="red" class="r">0</b>&gt;30 min</div></div>
 <div class="tools"><button id="locate">📍 La mia posizione</button><div class="hint" id="locationHint">Attiva la geolocalizzazione per vedere la tua posizione sulla mappa.</div></div>
-<div class="list-head"><span>TRENI ATTIVI</span><span id="updated">--</span></div><div class="list" id="list"><div class="empty">Caricamento dati ferroviari…</div></div>
+<div class="list-head"><span>TRENI ATTIVI</span><span id="updated">--</span></div>
+<div class="list" id="list"><div class="empty">Caricamento dati ferroviari…</div></div>
 </aside>
 <main class="mapwrap"><div id="map" class="map"></div><div class="mapnote"><b>● LIVE</b> · ritardi realtime quando disponibili · posizione del treno stimata dal programma GTFS</div></main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
-'use strict';
-if(typeof L==='undefined'){document.getElementById('list').innerHTML='<div class="empty">Impossibile caricare la mappa. Riprova tra poco.</div>';return}
-const map=L.map('map',{zoomControl:false,preferCanvas:true}).setView([45.4511,8.6245],11);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
-L.control.zoom({position:'bottomright'}).addTo(map);
-setTimeout(()=>map.invalidateSize(),100);setTimeout(()=>map.invalidateSize(),1000);
-const markers=new Map();let userMarker=null,userAccuracy=null,followUser=false;
-const colors={on_time:'#39ff8e',delayed:'#ffb020',severe_delay:'#ff4d4d'};
-function delayColor(d){return d<5?colors.on_time:d<=30?colors.delayed:colors.severe_delay}
-function delayText(d){return d<=0?'IN ORARIO':'+'+d+' min'}
-function trainIcon(color){return L.divIcon({className:'',html:`<div class="trainicon" style="background:${color};box-shadow:0 0 12px ${color}"></div>`,iconSize:[14,14],iconAnchor:[7,7]})}
-function popup(t){return `<div class="popup"><h3>${t.route} · ${t.realtime_train_number?'Treno '+t.realtime_train_number:'corsa'}</h3><p><b>${t.origin}</b> → <b>${t.destination}</b></p><p>Ritardo: <b style="color:${delayColor(t.delay_min)}">${delayText(t.delay_min)}</b></p><p>Prossima fermata: <b>${t.nextStop||'—'}</b></p><p>Posizione: ${t.realtime?'dati realtime disponibili':'stimata da orario'}</p></div>`}
-function render(trains){const list=document.getElementById('list');document.getElementById('count').textContent=trains.length;document.getElementById('yellow').textContent=trains.filter(t=>t.delay_min>=5&&t.delay_min<=30).length;document.getElementById('red').textContent=trains.filter(t=>t.delay_min>30).length;document.getElementById('updated').textContent=new Date().toLocaleTimeString('it-IT',{hour12:false});const active=new Set();list.innerHTML='';trains.sort((a,b)=>b.delay_min-a.delay_min).forEach(t=>{active.add(t.trip_id);const c=delayColor(t.delay_min);const row=document.createElement('div');row.className='row';row.innerHTML=`<div class="rowtop"><span><span class="dot" style="background:${c};box-shadow:0 0 7px ${c}"></span>${t.route}${t.realtime_train_number?' · '+t.realtime_train_number:''}</span><span class="delay" style="color:${c}">${delayText(t.delay_min)}</span></div><div class="route">${t.origin} → ${t.destination}</div><div class="meta"><span>${t.status==='running'?'IN VIAGGIO':t.status==='not_departed'?'IN PARTENZA':'ARRIVATO'}</span><span>→ ${t.nextStop||'—'}</span></div>`;row.onclick=()=>{const m=markers.get(t.trip_id);if(m){map.setView(m.getLatLng(),12);m.openPopup()}};list.appendChild(row);const pos=[t.lat,t.lon];let m=markers.get(t.trip_id);if(!m){m=L.marker(pos,{icon:trainIcon(c)}).addTo(map);markers.set(t.trip_id,m)}else{m.setLatLng(pos);m.setIcon(trainIcon(c))}m.bindPopup(popup(t));});for(const [id,m] of markers){if(!active.has(id)){map.removeLayer(m);markers.delete(id)}}}
-async function load(){try{const r=await fetch('/api/trains',{cache:'no-store'});if(!r.ok)throw Error('API '+r.status);const d=await r.json();document.getElementById('liveBadge').textContent=d.realtime_available?'● LIVE REALTIME':'● ORARI + FALLBACK';document.getElementById('liveBadge').style.color=d.realtime_available?'var(--green)':'var(--yellow)';render(d.trains);if(!d.trains.length){document.getElementById('list').innerHTML='<div class="empty">Nessun treno in corsa in questo istante. La mappa resta attiva: aggiorno automaticamente.</div>'}}catch(e){console.error(e);document.getElementById('list').innerHTML='<div class="empty">API ferroviaria temporaneamente non disponibile. Riprovo automaticamente.</div>';document.getElementById('liveBadge').textContent='● OFFLINE';document.getElementById('liveBadge').style.color='var(--red)'}}
-function clock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('it-IT',{hour12:false})}setInterval(clock,1000);clock();load();setInterval(load,15000);
-document.getElementById('locate').onclick=()=>{if(!navigator.geolocation){document.getElementById('locationHint').textContent='La geolocalizzazione non è supportata da questo dispositivo/browser.';return}document.getElementById('locationHint').textContent='Richiesta posizione…';navigator.geolocation.watchPosition(p=>{const {latitude,longitude,accuracy}=p.coords;if(!userMarker){userMarker=L.marker([latitude,longitude],{icon:L.divIcon({className:'',html:'<div class="userdot"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(map).bindPopup('<b>La tua posizione</b>')}else userMarker.setLatLng([latitude,longitude]);if(userAccuracy){userAccuracy.setLatLng([latitude,longitude]).setRadius(accuracy)}else userAccuracy=L.circle([latitude,longitude],{radius:accuracy,color:'#4da3ff',fillColor:'#4da3ff',fillOpacity:.08,weight:1}).addTo(map);if(!followUser){map.setView([latitude,longitude],13);followUser=true}document.getElementById('locationHint').textContent=`Posizione attiva · precisione ±${Math.round(accuracy)} m`},{error:e=>{document.getElementById('locationHint').textContent=e.code===1?'Permesso posizione negato. Abilitalo nelle impostazioni del browser.':'Posizione non disponibile.'},{enableHighAccuracy:true,maximumAge:5000,timeout:10000})};
+  'use strict';
+
+  const list=document.getElementById('list');
+  const liveBadge=document.getElementById('liveBadge');
+  const clockEl=document.getElementById('clock');
+  const markers=new Map();
+  let map=null;
+  let userMarker=null;
+  let userAccuracy=null;
+  let followUser=false;
+
+  const colors={on_time:'#39ff8e',delayed:'#ffb020',severe_delay:'#ff4d4d'};
+  function delayColor(d){return d<5?colors.on_time:d<=30?colors.delayed:colors.severe_delay}
+  function delayText(d,known){if(!known)return 'ritardo n/d';return d<=0?'IN ORARIO':'+'+d+' min'}
+  function trainIcon(color){return L.divIcon({className:'',html:'<div class="trainicon" style="background:'+color+';box-shadow:0 0 12px '+color+'"></div>',iconSize:[14,14],iconAnchor:[7,7]})}
+  function escapeHtml(v){return String(v??'').replace(/[&<>'"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[s]))}
+
+  function initMap(){
+    if(typeof L==='undefined'){
+      liveBadge.textContent='● MAPPA OFFLINE';
+      liveBadge.style.color='var(--red)';
+      list.innerHTML='<div class="empty">La libreria della mappa non è stata caricata. Riprovo automaticamente.</div>';
+      setTimeout(()=>location.reload(),5000);
+      return false;
+    }
+    map=L.map('map',{zoomControl:false,preferCanvas:true}).setView([45.4511,8.6245],11);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
+    L.control.zoom({position:'bottomright'}).addTo(map);
+    setTimeout(()=>map.invalidateSize(),100);
+    setTimeout(()=>map.invalidateSize(),1000);
+    window.addEventListener('resize',()=>map.invalidateSize());
+    return true;
+  }
+
+  function popup(t){
+    const c=delayColor(t.delay_min||0);
+    return '<div class="popup"><h3>'+escapeHtml(t.route)+' · '+(t.realtime_train_number?'Treno '+escapeHtml(t.realtime_train_number):'corsa')+'</h3>'+
+      '<p><b>'+escapeHtml(t.origin)+'</b> → <b>'+escapeHtml(t.destination)+'</b></p>'+
+      '<p>Ritardo: <b style="color:'+c+'">'+delayText(t.delay_min,t.delay_known)+'</b></p>'+
+      '<p>Prossima fermata: <b>'+escapeHtml(t.nextStop||'—')+'</b></p>'+
+      '<p>Posizione: '+(t.realtime?'realtime':'stimata da orario')+'</p></div>';
+  }
+
+  function render(trains){
+    if(!map)return;
+    const known=trains.filter(t=>t.delay_known);
+    document.getElementById('count').textContent=trains.length;
+    document.getElementById('yellow').textContent=known.filter(t=>t.delay_min>=5&&t.delay_min<=30).length;
+    document.getElementById('red').textContent=known.filter(t=>t.delay_min>30).length;
+    document.getElementById('updated').textContent=new Date().toLocaleTimeString('it-IT',{hour12:false});
+    const active=new Set();
+    list.innerHTML='';
+    trains.sort((a,b)=>(b.delay_known?b.delay_min:-1)-(a.delay_known?a.delay_min:-1));
+    trains.forEach(t=>{
+      active.add(t.trip_id);
+      const c=t.delay_known?delayColor(t.delay_min):'var(--dim)';
+      const row=document.createElement('div');row.className='row';
+      row.innerHTML='<div class="rowtop"><span><span class="dot" style="background:'+c+';box-shadow:0 0 7px '+c+'"></span>'+escapeHtml(t.route)+(t.realtime_train_number?' · '+escapeHtml(t.realtime_train_number):'')+'</span><span class="delay" style="color:'+c+'">'+delayText(t.delay_min,t.delay_known)+'</span></div>'+\
+        '<div class="route">'+escapeHtml(t.origin)+' → '+escapeHtml(t.destination)+'</div>'+\
+        '<div class="meta"><span>'+(t.status==='running'?'IN VIAGGIO':t.status==='not_departed'?'IN PARTENZA':'ARRIVATO')+'</span><span>→ '+escapeHtml(t.nextStop||'—')+'</span></div>';
+      row.onclick=()=>{const m=markers.get(t.trip_id);if(m){map.setView(m.getLatLng(),12);m.openPopup()}};
+      list.appendChild(row);
+      const pos=[t.lat,t.lon];
+      let m=markers.get(t.trip_id);
+      if(!m){m=L.marker(pos,{icon:trainIcon(c)}).addTo(map);markers.set(t.trip_id,m)}
+      else{m.setLatLng(pos);m.setIcon(trainIcon(c))}
+      m.bindPopup(popup(t));
+    });
+    for(const [id,m] of markers){if(!active.has(id)){map.removeLayer(m);markers.delete(id)}}
+  }
+
+  async function getTrains(){
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),8000);
+    try{
+      const r=await fetch('/api/trains?ts='+Date.now(),{cache:'no-store',signal:controller.signal});
+      if(!r.ok)throw new Error('API '+r.status);
+      const d=await r.json();
+      liveBadge.textContent=d.realtime_available?'● LIVE REALTIME':'● ORARI · REALTIME IN ATTESA';
+      liveBadge.style.color=d.realtime_available?'var(--green)':'var(--yellow)';
+      render(Array.isArray(d.trains)?d.trains:[]);
+      if(!d.trains?.length)list.innerHTML='<div class="empty">Nessun treno in corsa in questo istante. Aggiornamento automatico attivo.</div>';
+    }catch(e){
+      console.error('Train API:',e);
+      liveBadge.textContent='● API OFFLINE';liveBadge.style.color='var(--red)';
+      list.innerHTML='<div class="empty">API ferroviaria non raggiungibile. Riprovo tra 15 secondi.</div>';
+    }finally{clearTimeout(timer)}
+  }
+
+  function updateClock(){clockEl.textContent=new Date().toLocaleTimeString('it-IT',{hour12:false})}
+
+  function enableGeolocation(){
+    if(!navigator.geolocation){document.getElementById('locationHint').textContent='La geolocalizzazione non è supportata da questo browser.';return;}
+    document.getElementById('locationHint').textContent='Richiesta posizione…';
+    navigator.geolocation.watchPosition(function(p){
+      const lat=p.coords.latitude,lon=p.coords.longitude,accuracy=p.coords.accuracy;
+      if(!userMarker){
+        userMarker=L.marker([lat,lon],{icon:L.divIcon({className:'',html:'<div class="userdot"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(map).bindPopup('<b>La tua posizione</b>');
+      }else userMarker.setLatLng([lat,lon]);
+      if(userAccuracy)userAccuracy.setLatLng([lat,lon]).setRadius(accuracy);
+      else userAccuracy=L.circle([lat,lon],{radius:accuracy,color:'#4da3ff',fillColor:'#4da3ff',fillOpacity:.08,weight:1}).addTo(map);
+      if(!followUser){map.setView([lat,lon],13);followUser=true;}
+      document.getElementById('locationHint').textContent='Posizione attiva · precisione ±'+Math.round(accuracy)+' m';
+    },function(e){
+      document.getElementById('locationHint').textContent=e.code===1?'Permesso posizione negato. Abilitalo nelle impostazioni del browser.':'Posizione non disponibile.';
+    },{enableHighAccuracy:true,maximumAge:5000,timeout:10000});
+  }
+
+  document.getElementById('locate').addEventListener('click',enableGeolocation);
+  updateClock();setInterval(updateClock,1000);
+  if(initMap()){getTrains();setInterval(getTrains,15000);}
 })();
 </script>
-</body></html>
+</body>
+</html>
