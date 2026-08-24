@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TrainRadar24 — Novara LIVE</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root{--bg:#060b13;--panel:#0c1522;--panel2:#101d2e;--line:#1b2c40;--text:#d7e6ee;--dim:#71899b;--green:#39ff8e;--yellow:#ffb020;--red:#ff4d4d;--blue:#4da3ff}
 *{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.app{height:100%;display:grid;grid-template-columns:350px 1fr}.side{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}.brand{padding:18px;border-bottom:1px solid var(--line)}.title{font:800 27px Arial Narrow,Arial,sans-serif;text-transform:uppercase;color:#f3fbf6}.title span{color:var(--green)}.sub{font-size:10px;color:var(--dim);letter-spacing:1.4px;margin-top:5px}.live{display:inline-block;margin-top:10px;padding:3px 7px;border:1px solid rgba(57,255,142,.4);color:var(--green);font-size:9px;border-radius:3px}.clock{float:right;color:var(--green);font-weight:700;font-size:18px;margin-top:9px}.stats{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line)}.stat{padding:10px 8px;text-align:center;border-right:1px solid var(--line);font-size:10px;color:var(--dim)}.stat b{display:block;font-size:17px;margin-bottom:2px}.g{color:var(--green)}.y{color:var(--yellow)}.r{color:var(--red)}.tools{padding:10px;border-bottom:1px solid var(--line)}button{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px;border-radius:5px;cursor:pointer;font:inherit;font-size:11px}button:hover{border-color:var(--green)}.hint{font-size:9px;color:var(--dim);line-height:1.5;margin-top:7px}.list-head{padding:9px 14px;font-size:10px;color:var(--dim);border-bottom:1px solid var(--line);display:flex;justify-content:space-between}.list{overflow:auto;flex:1}.row{padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer}.row:hover{background:var(--panel2)}.rowtop{display:flex;justify-content:space-between;font-family:Arial Narrow,Arial,sans-serif;font-weight:700}.route{font-size:10px;color:var(--dim);margin-top:3px}.meta{display:flex;justify-content:space-between;margin-top:7px;font-size:10px}.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}.delay{font-weight:700}.empty{padding:20px 14px;color:var(--dim);font-size:11px;line-height:1.6}.mapwrap{position:relative;min-width:0}.map{height:100%;width:100%;background:#dfe6ea}.mapnote{position:absolute;left:14px;bottom:14px;z-index:500;background:rgba(6,11,19,.9);border:1px solid var(--line);border-radius:6px;padding:8px 11px;font-size:9px;color:var(--dim)}.mapnote b{color:var(--text)}.userdot{width:16px;height:16px;border-radius:50%;background:var(--blue);border:3px solid white;box-shadow:0 0 0 6px rgba(77,163,255,.2),0 0 14px rgba(77,163,255,.9)}.trainicon{width:14px;height:14px;border-radius:50%;border:2px solid white}.leaflet-popup-content-wrapper{background:var(--panel);color:var(--text);border:1px solid var(--line)}.leaflet-popup-tip{background:var(--panel)}.popup h3{margin:0 0 6px;font:700 16px Arial Narrow,Arial,sans-serif}.popup p{margin:3px 0;font-size:10px;color:var(--dim)}.popup b{color:var(--text)}.leaflet-control-attribution{font-size:9px}@media(max-width:800px){.app{grid-template-columns:1fr;grid-template-rows:42vh 58vh}.side{grid-row:2;border-right:0;border-top:1px solid var(--line)}.mapwrap{grid-row:1}.mapnote{display:none}}
@@ -19,14 +19,15 @@
 </aside>
 <main class="mapwrap"><div id="map" class="map"></div><div class="mapnote"><b>● LIVE</b> · ritardi realtime quando disponibili · posizione del treno stimata dal programma GTFS</div></main>
 </div>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
 'use strict';
+if(typeof L==='undefined'){document.getElementById('list').innerHTML='<div class="empty">Impossibile caricare la mappa. Riprova tra poco.</div>';return}
 const map=L.map('map',{zoomControl:false,preferCanvas:true}).setView([45.4511,8.6245],11);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
 L.control.zoom({position:'bottomright'}).addTo(map);
-setTimeout(()=>map.invalidateSize(),100);
+setTimeout(()=>map.invalidateSize(),100);setTimeout(()=>map.invalidateSize(),1000);
 const markers=new Map();let userMarker=null,userAccuracy=null,followUser=false;
 const colors={on_time:'#39ff8e',delayed:'#ffb020',severe_delay:'#ff4d4d'};
 function delayColor(d){return d<5?colors.on_time:d<=30?colors.delayed:colors.severe_delay}
