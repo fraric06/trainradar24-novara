@@ -1,3 +1,4 @@
+process.env.TZ = "Europe/Rome";
 const express = require("express");
 const cors = require("cors");
 const fs = require("fs");
@@ -14,12 +15,11 @@ const STATION_IDS=["S00248","S00023","S00034"];
 function haversine(a,b,c,d){const R=6371,r=x=>x*Math.PI/180,dl=r(c-a),dn=r(d-b);const x=Math.sin(dl/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(x));}
 function prepareTrip(t){let dist=0,cum=[0];for(let i=1;i<t.stops.length;i++){dist+=haversine(t.stops[i-1].lat,t.stops[i-1].lon,t.stops[i].lat,t.stops[i].lon);cum.push(dist)}return {...t,cumDist:cum,totalDist:dist};}
 const PREPARED_TRIPS=TRIPS.map(prepareTrip);
-function romeNow(){const p=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Rome",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).formatToParts(new Date());const g=k=>Number(p.find(x=>x.type===k)?.value||0);return g("hour")*60+g("minute")+g("second")/60;}
-function romeDate(){const p=new Intl.DateTimeFormat("en-CA",{timeZone:"Europe/Rome",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date());const g=k=>p.find(x=>x.type===k)?.value;return `${g("year")}-${g("month")}-${g("day")}`;}
+function romeNow(){const d=new Date();return d.getHours()*60+d.getMinutes()+d.getSeconds()/60;}
+function romeDate(){const d=new Date();const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${day}`;}
 function tripValidToday(t){const m=t.trip_id?.match(/-(\d{4}-\d{2}-\d{2})-(\d{4}-\d{2}-\d{2})$/);if(!m)return true;const d=romeDate();return d>=m[1]&&d<=m[2];}
 function estimatePosition(trip,nowMin,delay=0){const first=trip.stops[0],last=trip.stops.at(-1),dep=first.dep_min+delay,arr=last.arr_min+delay;if(nowMin<dep-5||nowMin>arr+5)return null;if(nowMin<=dep)return{status:"not_departed",lat:first.lat,lon:first.lon,nextStop:first.name,etaMin:Math.max(0,Math.round(dep-nowMin))};if(nowMin>=arr)return{status:"arrived",lat:last.lat,lon:last.lon,nextStop:null,etaMin:0};for(let i=0;i<trip.stops.length-1;i++){const a=trip.stops[i],b=trip.stops[i+1],ad=a.dep_min+delay,ba=b.arr_min+delay;if(nowMin>=ad&&nowMin<=ba){const q=(nowMin-ad)/(ba-ad||1);return{status:"running",lat:a.lat+(b.lat-a.lat)*q,lon:a.lon+(b.lon-a.lon)*q,fromStop:a.name,nextStop:b.name,etaMin:Math.max(0,Math.round(ba-nowMin)),progress:Math.round(q*100)}}}return null;}
 
-// Commercial train numbers shown to users. GTFS trip_id is only an internal identifier.
 function scheduledTrainNumber(trip){
   const raw=String(trip.trip_id||"").split("-")[0];
   if(trip.route==="S6"&&/^124\d+$/.test(raw))return raw.slice(1);
@@ -33,34 +33,29 @@ function scheduledTrainNumber(trip){
 let realtime={available:false,updatedAt:null,records:[],error:null};
 function fetchJson(url){return new Promise((resolve,reject)=>{const req=https.get(url,{headers:{"User-Agent":"TrainRadar24-Novara/1.0","Accept":"application/json"}},res=>{let body="";res.setEncoding("utf8");res.on("data",c=>body+=c);res.on("end",()=>{if(res.statusCode<200||res.statusCode>=300)return reject(new Error(`HTTP ${res.statusCode}`));try{resolve(JSON.parse(body))}catch(e){reject(new Error("JSON non valido"))}})});req.setTimeout(7000,()=>req.destroy(new Error("timeout")));req.on("error",reject);});}
 
-// ViaggiaTreno expects the current local date/time in the JavaScript Date.toString style.
-function vtDate(){
-  const now=new Date();
-  const parts=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Rome",weekday:"short",month:"short",day:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit",second:"2-digit",hourCycle:"h23"}).formatToParts(now);
-  const get=k=>parts.find(p=>p.type===k)?.value;
-  const probe=new Date(new Intl.DateTimeFormat("en-US",{timeZone:"Europe/Rome",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).format(now));
-  const offsetMinutes=Math.round((probe.getTime()-now.getTime())/60000);
-  const sign=offsetMinutes>=0?"+":"-",abs=Math.abs(offsetMinutes),oh=String(Math.floor(abs/60)).padStart(2,"0"),om=String(abs%60).padStart(2,"0");
-  return `${get("weekday")} ${get("month")} ${get("day")} ${get("year")} ${get("hour")}:${get("minute")} :${get("second")} GMT${sign}${oh}${om} (Europe/Rome)` .replace(/ :/g,":");
-}
-function minuteFromDate(v){if(v===null||v===undefined)return null;const n=Number(v);if(Number.isFinite(n)){const s=new Date(n).toLocaleTimeString("it-IT",{timeZone:"Europe/Rome",hour:"2-digit",minute:"2-digit",hour12:false});const m=s.match(/^(\d{1,2}):(\d{2})/);return m?Number(m[1])*60+Number(m[2]):null}const s=String(v);const m=s.match(/(\d{1,2}):(\d{2})/);return m?Number(m[1])*60+Number(m[2]):null;}
+// ViaggiaTreno is sensitive to the exact current local date/time format.
+// Render runs in UTC by default, so TZ is forced to Europe/Rome above.
+function vtDate(){ return new Date().toString(); }
+function minuteFromDate(v){if(v===null||v===undefined)return null;const n=Number(v);if(Number.isFinite(n)){const d=new Date(n);return d.getHours()*60+d.getMinutes()}const s=String(v);const m=s.match(/(\d{1,2}):(\d{2})/);return m?Number(m[1])*60+Number(m[2]):null;}
 function parseVT(item,stationId){const min=minuteFromDate(item?.orarioPartenza);if(min===null)return null;const rawDelay=Number(item?.ritardo);const delay=Number.isFinite(rawDelay)?Math.max(0,Math.round(rawDelay)):0;const number=String(item?.numeroTreno??"").trim();if(!number)return null;return{stationId,number,scheduledMin:min,delayMin:delay,destination:item?.destinazione||null,cancelled:Number(item?.provvedimento)===1,updatedAt:new Date().toISOString()};}
 async function refreshRealtime(){
   const records=[];let errors=[];const date=encodeURIComponent(vtDate());
-  for(const stationId of STATION_IDS){try{const data=await fetchJson(`https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/partenze/${stationId}/${date}`);if(Array.isArray(data))for(const item of data){const x=parseVT(item,stationId);if(x)records.push(x)}}catch(e){errors.push(`${stationId}: ${e.message}`)}}
-  if(records.length){realtime={available:true,updatedAt:new Date().toISOString(),records,error:errors.length?errors.join(" | "):null};console.log(`ViaggiaTreno: ${records.length} partenze realtime`)}else{realtime={...realtime,available:false,error:errors.join(" | ")||"Nessun dato realtime"};console.log(`ViaggiaTreno non disponibile: ${realtime.error}`)}
+  for(const stationId of STATION_IDS){
+    try{
+      const data=await fetchJson(`https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno/partenze/${stationId}/${date}`);
+      if(Array.isArray(data))for(const item of data){const x=parseVT(item,stationId);if(x)records.push(x)}
+    }catch(e){errors.push(`${stationId}: ${e.message}`)}
+  }
+  if(records.length){realtime={available:true,updatedAt:new Date().toISOString(),records,error:errors.length?errors.join(" | "):null};console.log(`ViaggiaTreno OK: ${records.length} partenze realtime`)}
+  else{realtime={...realtime,available:false,error:errors.join(" | ")||"Nessun dato realtime"};console.log(`ViaggiaTreno NON DISPONIBILE: ${realtime.error}`)}
 }
 function findRealtime(trip,scheduledNumber){
-  const candidates=realtime.records.filter(r=>STATION_IDS.includes(r.stationId));
-  // Strongest match: real commercial train number + station of origin.
-  if(scheduledNumber){const exact=candidates.find(r=>r.number===scheduledNumber&&r.stationId===trip.stops[0]?.id);if(exact)return exact;}
-  // Second choice: exact number anywhere in the three monitored stations.
-  if(scheduledNumber){const exact=candidates.find(r=>r.number===scheduledNumber);if(exact)return exact;}
-  // Last fallback: same origin station and scheduled departure within 3 minutes.
+  const candidates=realtime.records;
+  if(scheduledNumber){const exact=candidates.find(r=>r.number===scheduledNumber&&r.stationId===trip.stops[0]?.id);if(exact)return exact;const anywhere=candidates.find(r=>r.number===scheduledNumber);if(anywhere)return anywhere;}
   let best=null;for(const r of candidates){if(r.stationId!==trip.stops[0]?.id)continue;const diff=Math.abs(r.scheduledMin-trip.stops[0].dep_min);if(diff<=3&&(!best||diff<best.diff))best={...r,diff};}return best;
 }
 
-app.get("/api/trains",(req,res)=>{try{const now=romeNow(),trains=[];for(const trip of PREPARED_TRIPS){if(!tripValidToday(trip))continue;const scheduledNumber=scheduledTrainNumber(trip),live=findRealtime(trip,scheduledNumber),delay=live?live.delayMin:0,pos=estimatePosition(trip,now,delay);if(!pos)continue;const displayNumber=scheduledNumber||live?.number||"";trains.push({trip_id:trip.trip_id,route:trip.route,route_name:ROUTE_NAMES[trip.route]||trip.route,dep:trip.dep,arr:trip.arr,origin:trip.stops[0].name,destination:trip.stops.at(-1).name,train_number:displayNumber,delay_min:delay,delay_known:Boolean(live),delay_status:delay<5?"on_time":delay<=30?"delayed":"severe_delay",realtime:Boolean(live),realtime_train_number:displayNumber,realtime_source_number:live?.number||null,realtime_updated_at:realtime.updatedAt,cancelled:live?.cancelled||false,...pos});}res.json({generated_at:new Date().toISOString(),reference_minutes:Math.round(now),source:realtime.available?"GTFS + ViaggiaTreno realtime":"GTFS static",realtime_available:realtime.available,realtime_updated_at:realtime.updatedAt,count:trains.length,trains});}catch(e){console.error("/api/trains",e);res.status(500).json({error:e.message,trains:[]})}});
+app.get("/api/trains",(req,res)=>{try{const now=romeNow(),trains=[];for(const trip of PREPARED_TRIPS){if(!tripValidToday(trip))continue;const scheduledNumber=scheduledTrainNumber(trip),live=findRealtime(trip,scheduledNumber),delay=live?live.delayMin:0,pos=estimatePosition(trip,now,delay);if(!pos)continue;const displayNumber=scheduledNumber||live?.number||"";trains.push({trip_id:trip.trip_id,route:trip.route,route_name:ROUTE_NAMES[trip.route]||trip.route,dep:trip.dep,arr:trip.arr,origin:trip.stops[0].name,destination:trip.stops.at(-1).name,train_number:displayNumber,delay_min:delay,delay_known:Boolean(live),delay_status:!live?"unknown":delay<5?"on_time":delay<=30?"delayed":"severe_delay",realtime:Boolean(live),realtime_train_number:displayNumber,realtime_source_number:live?.number||null,realtime_updated_at:realtime.updatedAt,cancelled:live?.cancelled||false,...pos});}res.json({generated_at:new Date().toISOString(),reference_minutes:Math.round(now),source:realtime.available?"GTFS + ViaggiaTreno realtime":"GTFS static",realtime_available:realtime.available,realtime_updated_at:realtime.updatedAt,count:trains.length,trains});}catch(e){console.error("/api/trains",e);res.status(500).json({error:e.message,trains:[]})}});
 app.get("/api/realtime-status",(req,res)=>res.json({available:realtime.available,updated_at:realtime.updatedAt,record_count:realtime.records.length,error:realtime.error}));
 app.get("/api/health",(req,res)=>res.json({ok:true,trips:PREPARED_TRIPS.length,date:romeDate(),time:romeNow(),realtime:realtime.available}));
 app.get("/api/routes",(req,res)=>res.json(Object.entries(ROUTE_NAMES).map(([id,name])=>({id,name}))));
