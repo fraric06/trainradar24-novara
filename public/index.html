@@ -6,136 +6,25 @@
 <title>TrainRadar24 — Novara LIVE</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
 <style>
-:root{--bg:#060b13;--panel:#0c1522;--panel2:#101d2e;--line:#1b2c40;--text:#d7e6ee;--dim:#71899b;--green:#39ff8e;--yellow:#ffb020;--red:#ff4d4d;--blue:#4da3ff}
-*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.app{height:100%;display:grid;grid-template-columns:350px 1fr}.side{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}.brand{padding:18px;border-bottom:1px solid var(--line)}.title{font:800 27px Arial Narrow,Arial,sans-serif;text-transform:uppercase;color:#f3fbf6}.title span{color:var(--green)}.sub{font-size:10px;color:var(--dim);letter-spacing:1.4px;margin-top:5px}.live{display:inline-block;margin-top:10px;padding:3px 7px;border:1px solid rgba(57,255,142,.4);color:var(--green);font-size:9px;border-radius:3px}.clock{float:right;color:var(--green);font-weight:700;font-size:18px;margin-top:9px}.stats{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line)}.stat{padding:10px 8px;text-align:center;border-right:1px solid var(--line);font-size:10px;color:var(--dim)}.stat b{display:block;font-size:17px;margin-bottom:2px}.g{color:var(--green)}.y{color:var(--yellow)}.r{color:var(--red)}.tools{padding:10px;border-bottom:1px solid var(--line)}button{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px;border-radius:5px;cursor:pointer;font:inherit;font-size:11px}button:hover{border-color:var(--green)}.hint{font-size:9px;color:var(--dim);line-height:1.5;margin-top:7px}.list-head{padding:9px 14px;font-size:10px;color:var(--dim);border-bottom:1px solid var(--line);display:flex;justify-content:space-between}.list{overflow:auto;flex:1}.row{padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer}.row:hover{background:var(--panel2)}.rowtop{display:flex;justify-content:space-between;font-family:Arial Narrow,Arial,sans-serif;font-weight:700}.route{font-size:10px;color:var(--dim);margin-top:3px}.meta{display:flex;justify-content:space-between;margin-top:7px;font-size:10px}.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}.delay{font-weight:700}.empty{padding:20px 14px;color:var(--dim);font-size:11px;line-height:1.6}.mapwrap{position:relative;min-width:0}.map{height:100%;width:100%;background:#dfe6ea}.mapnote{position:absolute;left:14px;bottom:14px;z-index:500;background:rgba(6,11,19,.9);border:1px solid var(--line);border-radius:6px;padding:8px 11px;font-size:9px;color:var(--dim)}.mapnote b{color:var(--text)}.userdot{width:16px;height:16px;border-radius:50%;background:var(--blue);border:3px solid white;box-shadow:0 0 0 6px rgba(77,163,255,.2),0 0 14px rgba(77,163,255,.9)}.trainicon{width:14px;height:14px;border-radius:50%;border:2px solid white}.leaflet-popup-content-wrapper{background:var(--panel);color:var(--text);border:1px solid var(--line)}.leaflet-popup-tip{background:var(--panel)}.popup h3{margin:0 0 6px;font:700 16px Arial Narrow,Arial,sans-serif}.popup p{margin:3px 0;font-size:10px;color:var(--dim)}.popup b{color:var(--text)}.leaflet-control-attribution{font-size:9px}@media(max-width:800px){.app{grid-template-columns:1fr;grid-template-rows:42vh 58vh}.side{grid-row:2;border-right:0;border-top:1px solid var(--line)}.mapwrap{grid-row:1}.mapnote{display:none}}
+:root{--bg:#060b13;--panel:#0c1522;--panel2:#101d2e;--line:#1b2c40;--text:#d7e6ee;--dim:#71899b;--green:#39ff8e;--yellow:#ffb020;--red:#ff4d4d;--blue:#4da3ff}*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.app{height:100%;display:grid;grid-template-columns:350px 1fr}.side{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}.brand{padding:18px;border-bottom:1px solid var(--line)}.title{font:800 27px Arial,sans-serif;text-transform:uppercase}.title span{color:var(--green)}.sub{font-size:10px;color:var(--dim);letter-spacing:1.4px;margin-top:5px}.live{display:inline-block;margin-top:10px;padding:3px 7px;border:1px solid rgba(57,255,142,.4);color:var(--green);font-size:9px;border-radius:3px}.clock{float:right;color:var(--green);font-weight:700;font-size:18px;margin-top:9px}.stats{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line)}.stat{padding:10px 8px;text-align:center;border-right:1px solid var(--line);font-size:10px;color:var(--dim)}.stat b{display:block;font-size:17px;margin-bottom:2px}.g{color:var(--green)}.y{color:var(--yellow)}.r{color:var(--red)}.tools{padding:10px;border-bottom:1px solid var(--line)}button{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px;border-radius:5px;cursor:pointer;font:inherit;font-size:11px}.hint{font-size:9px;color:var(--dim);line-height:1.5;margin-top:7px}.list-head{padding:9px 14px;font-size:10px;color:var(--dim);border-bottom:1px solid var(--line);display:flex;justify-content:space-between}.list{overflow:auto;flex:1}.row{padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer}.rowtop{display:flex;justify-content:space-between;font-family:Arial,sans-serif;font-weight:700}.route{font-size:10px;color:var(--dim);margin-top:3px}.meta{display:flex;justify-content:space-between;margin-top:7px;font-size:10px}.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}.delay{font-weight:700}.empty{padding:20px 14px;color:var(--dim);font-size:11px;line-height:1.6}.mapwrap{position:relative;min-width:0}.map{height:100%;width:100%;background:#dfe6ea}.mapnote{position:absolute;left:14px;bottom:14px;z-index:500;background:rgba(6,11,19,.9);border:1px solid var(--line);border-radius:6px;padding:8px 11px;font-size:9px;color:var(--dim)}.mapnote b{color:var(--text)}.userdot{width:16px;height:16px;border-radius:50%;background:var(--blue);border:3px solid white;box-shadow:0 0 0 6px rgba(77,163,255,.2),0 0 14px rgba(77,163,255,.9)}.trainicon{width:14px;height:14px;border-radius:50%;border:2px solid white}@media(max-width:800px){.app{grid-template-columns:1fr;grid-template-rows:42vh 58vh}.side{grid-row:2;border-right:0;border-top:1px solid var(--line)}.mapwrap{grid-row:1}.mapnote{display:none}}
 </style>
 </head>
 <body>
-<div class="app">
-<aside class="side">
-<div class="brand"><div class="title">Train<span>Radar</span>24</div><div class="sub">NOVARA · TRENI IN TEMPO REALE</div><span class="live" id="liveBadge">● AVVIO</span><span class="clock" id="clock">--:--:--</span></div>
-<div class="stats"><div class="stat"><b id="count" class="g">0</b>treni</div><div class="stat"><b id="yellow" class="y">0</b>5–30 min</div><div class="stat"><b id="red" class="r">0</b>&gt;30 min</div></div>
-<div class="tools"><button id="locate">📍 La mia posizione</button><div class="hint" id="locationHint">Attiva la geolocalizzazione per vedere la tua posizione sulla mappa.</div></div>
-<div class="list-head"><span>TRENI ATTIVI</span><span id="updated">--</span></div>
-<div class="list" id="list"><div class="empty">Caricamento dati ferroviari…</div></div>
-</aside>
-<main class="mapwrap"><div id="map" class="map"></div><div class="mapnote"><b>● LIVE</b> · ritardi realtime quando disponibili · posizione del treno stimata dal programma GTFS</div></main>
-</div>
+<div class="app"><aside class="side"><div class="brand"><div class="title">Train<span>Radar</span>24</div><div class="sub">NOVARA · TRENI IN TEMPO REALE</div><span class="live" id="liveBadge">● AVVIO</span><span class="clock" id="clock">--:--:--</span></div><div class="stats"><div class="stat"><b id="count" class="g">0</b>treni</div><div class="stat"><b id="yellow" class="y">0</b>5–30 min</div><div class="stat"><b id="red" class="r">0</b>&gt;30 min</div></div><div class="tools"><button id="locate">📍 La mia posizione</button><div class="hint" id="locationHint">Attiva la geolocalizzazione per vedere la tua posizione sulla mappa.</div></div><div class="list-head"><span>TRENI ATTIVI</span><span id="updated">--</span></div><div class="list" id="list"><div class="empty">Caricamento dati ferroviari…</div></div></aside><main class="mapwrap"><div id="map" class="map"></div><div class="mapnote"><b>● LIVE</b> · ritardi realtime quando disponibili · posizione stimata da GTFS</div></main></div>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-(function(){
-  'use strict';
-
-  const list=document.getElementById('list');
-  const liveBadge=document.getElementById('liveBadge');
-  const clockEl=document.getElementById('clock');
-  const markers=new Map();
-  let map=null;
-  let userMarker=null;
-  let userAccuracy=null;
-  let followUser=false;
-
-  const colors={on_time:'#39ff8e',delayed:'#ffb020',severe_delay:'#ff4d4d'};
-  function delayColor(d){return d<5?colors.on_time:d<=30?colors.delayed:colors.severe_delay}
-  function delayText(d,known){if(!known)return 'ritardo n/d';return d<=0?'IN ORARIO':'+'+d+' min'}
-  function trainIcon(color){return L.divIcon({className:'',html:'<div class="trainicon" style="background:'+color+';box-shadow:0 0 12px '+color+'"></div>',iconSize:[14,14],iconAnchor:[7,7]})}
-  function escapeHtml(v){return String(v??'').replace(/[&<>'"]/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[s]))}
-
-  function initMap(){
-    if(typeof L==='undefined'){
-      liveBadge.textContent='● MAPPA OFFLINE';
-      liveBadge.style.color='var(--red)';
-      list.innerHTML='<div class="empty">La libreria della mappa non è stata caricata. Riprovo automaticamente.</div>';
-      setTimeout(()=>location.reload(),5000);
-      return false;
-    }
-    map=L.map('map',{zoomControl:false,preferCanvas:true}).setView([45.4511,8.6245],11);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);
-    L.control.zoom({position:'bottomright'}).addTo(map);
-    setTimeout(()=>map.invalidateSize(),100);
-    setTimeout(()=>map.invalidateSize(),1000);
-    window.addEventListener('resize',()=>map.invalidateSize());
-    return true;
-  }
-
-  function popup(t){
-    const c=delayColor(t.delay_min||0);
-    return '<div class="popup"><h3>'+escapeHtml(t.route)+' · '+(t.realtime_train_number?'Treno '+escapeHtml(t.realtime_train_number):'corsa')+'</h3>'+
-      '<p><b>'+escapeHtml(t.origin)+'</b> → <b>'+escapeHtml(t.destination)+'</b></p>'+
-      '<p>Ritardo: <b style="color:'+c+'">'+delayText(t.delay_min,t.delay_known)+'</b></p>'+
-      '<p>Prossima fermata: <b>'+escapeHtml(t.nextStop||'—')+'</b></p>'+
-      '<p>Posizione: '+(t.realtime?'realtime':'stimata da orario')+'</p></div>';
-  }
-
-  function render(trains){
-    if(!map)return;
-    const known=trains.filter(t=>t.delay_known);
-    document.getElementById('count').textContent=trains.length;
-    document.getElementById('yellow').textContent=known.filter(t=>t.delay_min>=5&&t.delay_min<=30).length;
-    document.getElementById('red').textContent=known.filter(t=>t.delay_min>30).length;
-    document.getElementById('updated').textContent=new Date().toLocaleTimeString('it-IT',{hour12:false});
-    const active=new Set();
-    list.innerHTML='';
-    trains.sort((a,b)=>(b.delay_known?b.delay_min:-1)-(a.delay_known?a.delay_min:-1));
-    trains.forEach(t=>{
-      active.add(t.trip_id);
-      const c=t.delay_known?delayColor(t.delay_min):'var(--dim)';
-      const row=document.createElement('div');row.className='row';
-      row.innerHTML='<div class="rowtop"><span><span class="dot" style="background:'+c+';box-shadow:0 0 7px '+c+'"></span>'+escapeHtml(t.route)+(t.realtime_train_number?' · '+escapeHtml(t.realtime_train_number):'')+'</span><span class="delay" style="color:'+c+'">'+delayText(t.delay_min,t.delay_known)+'</span></div>'+\
-        '<div class="route">'+escapeHtml(t.origin)+' → '+escapeHtml(t.destination)+'</div>'+\
-        '<div class="meta"><span>'+(t.status==='running'?'IN VIAGGIO':t.status==='not_departed'?'IN PARTENZA':'ARRIVATO')+'</span><span>→ '+escapeHtml(t.nextStop||'—')+'</span></div>';
-      row.onclick=()=>{const m=markers.get(t.trip_id);if(m){map.setView(m.getLatLng(),12);m.openPopup()}};
-      list.appendChild(row);
-      const pos=[t.lat,t.lon];
-      let m=markers.get(t.trip_id);
-      if(!m){m=L.marker(pos,{icon:trainIcon(c)}).addTo(map);markers.set(t.trip_id,m)}
-      else{m.setLatLng(pos);m.setIcon(trainIcon(c))}
-      m.bindPopup(popup(t));
-    });
-    for(const [id,m] of markers){if(!active.has(id)){map.removeLayer(m);markers.delete(id)}}
-  }
-
-  async function getTrains(){
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),8000);
-    try{
-      const r=await fetch('/api/trains?ts='+Date.now(),{cache:'no-store',signal:controller.signal});
-      if(!r.ok)throw new Error('API '+r.status);
-      const d=await r.json();
-      liveBadge.textContent=d.realtime_available?'● LIVE REALTIME':'● ORARI · REALTIME IN ATTESA';
-      liveBadge.style.color=d.realtime_available?'var(--green)':'var(--yellow)';
-      render(Array.isArray(d.trains)?d.trains:[]);
-      if(!d.trains?.length)list.innerHTML='<div class="empty">Nessun treno in corsa in questo istante. Aggiornamento automatico attivo.</div>';
-    }catch(e){
-      console.error('Train API:',e);
-      liveBadge.textContent='● API OFFLINE';liveBadge.style.color='var(--red)';
-      list.innerHTML='<div class="empty">API ferroviaria non raggiungibile. Riprovo tra 15 secondi.</div>';
-    }finally{clearTimeout(timer)}
-  }
-
-  function updateClock(){clockEl.textContent=new Date().toLocaleTimeString('it-IT',{hour12:false})}
-
-  function enableGeolocation(){
-    if(!navigator.geolocation){document.getElementById('locationHint').textContent='La geolocalizzazione non è supportata da questo browser.';return;}
-    document.getElementById('locationHint').textContent='Richiesta posizione…';
-    navigator.geolocation.watchPosition(function(p){
-      const lat=p.coords.latitude,lon=p.coords.longitude,accuracy=p.coords.accuracy;
-      if(!userMarker){
-        userMarker=L.marker([lat,lon],{icon:L.divIcon({className:'',html:'<div class="userdot"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(map).bindPopup('<b>La tua posizione</b>');
-      }else userMarker.setLatLng([lat,lon]);
-      if(userAccuracy)userAccuracy.setLatLng([lat,lon]).setRadius(accuracy);
-      else userAccuracy=L.circle([lat,lon],{radius:accuracy,color:'#4da3ff',fillColor:'#4da3ff',fillOpacity:.08,weight:1}).addTo(map);
-      if(!followUser){map.setView([lat,lon],13);followUser=true;}
-      document.getElementById('locationHint').textContent='Posizione attiva · precisione ±'+Math.round(accuracy)+' m';
-    },function(e){
-      document.getElementById('locationHint').textContent=e.code===1?'Permesso posizione negato. Abilitalo nelle impostazioni del browser.':'Posizione non disponibile.';
-    },{enableHighAccuracy:true,maximumAge:5000,timeout:10000});
-  }
-
-  document.getElementById('locate').addEventListener('click',enableGeolocation);
-  updateClock();setInterval(updateClock,1000);
-  if(initMap()){getTrains();setInterval(getTrains,15000);}
-})();
+(function(){'use strict';
+const $=id=>document.getElementById(id),markers=new Map();let map,userMarker,userAccuracy,followUser=false;
+function c(t){if(!t.delay_known)return '#71899b';return t.delay_min<5?'#39ff8e':t.delay_min<=30?'#ffb020':'#ff4d4d'}
+function d(t){return t.delay_known?(t.delay_min<=0?'IN ORARIO':'+'+t.delay_min+' min'):'ritardo n/d'}
+function icon(color){return L.divIcon({className:'',html:'<div class="trainicon" style="background:'+color+';box-shadow:0 0 12px '+color+'"></div>',iconSize:[14,14],iconAnchor:[7,7]})}
+function esc(v){return String(v??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]))}
+function init(){if(typeof L==='undefined'){ $('liveBadge').textContent='● MAPPA OFFLINE';$('liveBadge').style.color='var(--red)';$('list').innerHTML='<div class="empty">Leaflet non è stato caricato.</div>';return false}map=L.map('map').setView([45.4511,8.6245],11);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);L.control.zoom({position:'bottomright'}).addTo(map);setTimeout(()=>map.invalidateSize(),100);return true}
+function popup(t){const color=c(t);return '<div><h3>'+esc(t.route)+' · '+(t.realtime_train_number?'Treno '+esc(t.realtime_train_number):'corsa')+'</h3><p><b>'+esc(t.origin)+'</b> → <b>'+esc(t.destination)+'</b></p><p>Ritardo: <b style="color:'+color+'">'+d(t)+'</b></p><p>Prossima fermata: <b>'+esc(t.nextStop||'—')+'</b></p><p>Posizione: '+(t.realtime?'realtime':'stimata da orario')+'</p></div>'}
+function render(trains){$('count').textContent=trains.length;$('yellow').textContent=trains.filter(t=>t.delay_known&&t.delay_min>=5&&t.delay_min<=30).length;$('red').textContent=trains.filter(t=>t.delay_known&&t.delay_min>30).length;$('updated').textContent=new Date().toLocaleTimeString('it-IT',{hour12:false});const active=new Set();$('list').innerHTML='';trains.forEach(t=>{active.add(t.trip_id);const color=c(t),row=document.createElement('div');row.className='row';row.innerHTML='<div class="rowtop"><span><span class="dot" style="background:'+color+'"></span>'+esc(t.route)+(t.realtime_train_number?' · '+esc(t.realtime_train_number):'')+'</span><span class="delay" style="color:'+color+'">'+d(t)+'</span></div><div class="route">'+esc(t.origin)+' → '+esc(t.destination)+'</div><div class="meta"><span>'+(t.status==='running'?'IN VIAGGIO':t.status==='not_departed'?'IN PARTENZA':'ARRIVATO')+'</span><span>→ '+esc(t.nextStop||'—')+'</span></div>';row.onclick=()=>{const m=markers.get(t.trip_id);if(m){map.setView(m.getLatLng(),12);m.openPopup()}};$('list').appendChild(row);const p=[t.lat,t.lon];let m=markers.get(t.trip_id);if(!m){m=L.marker(p,{icon:icon(color)}).addTo(map);markers.set(t.trip_id,m)}else{m.setLatLng(p);m.setIcon(icon(color))}m.bindPopup(popup(t))});for(const [id,m] of markers)if(!active.has(id)){map.removeLayer(m);markers.delete(id)}}
+async function load(){try{const r=await fetch('/api/trains?ts='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();$('liveBadge').textContent=data.realtime_available?'● LIVE REALTIME':'● ORARI · REALTIME IN ATTESA';$('liveBadge').style.color=data.realtime_available?'var(--green)':'var(--yellow)';render(Array.isArray(data.trains)?data.trains:[]);if(!data.trains?.length)$('list').innerHTML='<div class="empty">Nessun treno in corsa in questo istante. Aggiornamento automatico attivo.</div>'}catch(e){console.error(e);$('liveBadge').textContent='● API OFFLINE';$('liveBadge').style.color='var(--red)';$('list').innerHTML='<div class="empty">API ferroviaria non raggiungibile. Riprovo automaticamente.</div>'}}
+function locate(){if(!navigator.geolocation){$('locationHint').textContent='Geolocalizzazione non supportata.';return}$('locationHint').textContent='Richiesta posizione…';navigator.geolocation.watchPosition(p=>{const lat=p.coords.latitude,lon=p.coords.longitude,a=p.coords.accuracy;if(!userMarker)userMarker=L.marker([lat,lon],{icon:L.divIcon({className:'',html:'<div class="userdot"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(map).bindPopup('<b>La tua posizione</b>');else userMarker.setLatLng([lat,lon]);if(userAccuracy)userAccuracy.setLatLng([lat,lon]).setRadius(a);else userAccuracy=L.circle([lat,lon],{radius:a,color:'#4da3ff',fillColor:'#4da3ff',fillOpacity:.08,weight:1}).addTo(map);if(!followUser){map.setView([lat,lon],13);followUser=true}$('locationHint').textContent='Posizione attiva · precisione ±'+Math.round(a)+' m'},e=>{$('locationHint').textContent=e.code===1?'Permesso posizione negato.':'Posizione non disponibile.'},{enableHighAccuracy:true,maximumAge:5000,timeout:10000})}
+$('locate').onclick=locate;function clock(){$('clock').textContent=new Date().toLocaleTimeString('it-IT',{hour12:false})}clock();setInterval(clock,1000);if(init()){load();setInterval(load,15000)}})();
 </script>
 </body>
 </html>
