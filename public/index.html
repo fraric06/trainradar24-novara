@@ -3,267 +3,83 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TrainRadar24 — Servizio Novara (dati reali)</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<title>TrainRadar24 — Novara</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
-  :root{
-    --bg: #060b13; --panel: #0c1522; --panel-2: #0f1b2c; --line: #1b2c40;
-    --phosphor: #39ff8e; --phosphor-dim: #1c8a52; --amber: #ffb020; --red: #ff4d4d;
-    --text: #d7e6ee; --text-dim: #6f8ba0;
-    --mono: 'IBM Plex Mono', 'SFMono-Regular', Menlo, Consolas, monospace;
-    --grotesk: 'Barlow Condensed', 'Arial Narrow', sans-serif;
-  }
-  @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
-  * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); font-family: var(--mono); color: var(--text); }
-  .app { display: grid; grid-template-columns: 340px 1fr; height: 100vh; }
-  @media (max-width: 860px) { .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; height: auto; } .sidebar { max-height: 46vh; } .maps { height: auto; } }
-
-  .sidebar { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; overflow: hidden; }
-  .brand { padding: 18px 18px 14px 18px; border-bottom: 1px solid var(--line); position: relative; }
-  .brand-title { font-family: var(--grotesk); font-weight: 800; font-size: 26px; color: #f2fbf6; text-transform: uppercase; display:flex; gap:8px; align-items:baseline; }
-  .brand-title span { color: var(--phosphor); }
-  .brand-sub { margin-top: 4px; font-size: 11px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; }
-  .status-badge { position:absolute; top:18px; right:18px; font-size:9px; letter-spacing:1px; padding:3px 6px; border-radius:3px; text-align:right; line-height:1.5; }
-  .status-badge.live { color: var(--phosphor); border:1px solid rgba(57,255,142,0.4); background: rgba(57,255,142,0.08); }
-  .status-badge.fallback { color: var(--amber); border:1px solid rgba(255,176,32,0.4); background: rgba(255,176,32,0.08); }
-  .clock { margin-top: 12px; font-size: 20px; color: var(--phosphor); letter-spacing: 2px; font-weight: 600; text-shadow: 0 0 12px rgba(57,255,142,0.35); }
-  .clock-label { font-size: 9px; color: var(--text-dim); letter-spacing: 1.5px; margin-top: 2px; text-transform: uppercase; }
-  .list-head { padding: 10px 18px 8px 18px; font-size: 10px; letter-spacing: 1.5px; color: var(--text-dim); text-transform: uppercase; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; }
-  .train-list { overflow-y: auto; flex: 1; }
-  .train-row { padding: 12px 18px; border-bottom: 1px solid var(--line); cursor: pointer; }
-  .train-row:hover, .train-row.active { background: var(--panel-2); }
-  .train-row.active { border-left: 3px solid var(--phosphor); padding-left: 15px; }
-  .row-top { display: flex; justify-content: space-between; align-items:center; font-family: var(--grotesk); font-weight: 700; font-size: 15px; color: #eef7f1; }
-  .row-route { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
-  .row-meta { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; }
-  .status-dot { width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:6px; }
-  .status-running .status-dot { background: var(--phosphor); box-shadow: 0 0 6px var(--phosphor); }
-  .status-not_departed .status-dot, .status-arrived .status-dot { background: var(--text-dim); }
-  .status-label { color: var(--text-dim); }
-  .status-running .status-label { color: var(--phosphor); }
-  .eta { color: var(--amber); }
-  .empty { padding: 24px 18px; color: var(--text-dim); font-size: 12px; line-height:1.6; }
-
-  .maps { display:flex; flex-direction:column; }
-  #map { flex: 1; min-height: 320px; background:#060b13; }
-  #overview { height: 220px; border-top: 1px solid var(--line); background:#060b13; position:relative; }
-  .overview-label { position:absolute; top:10px; left:14px; z-index:500; font-size:10px; letter-spacing:1.5px; color:var(--text-dim); text-transform:uppercase; background:rgba(6,11,19,0.7); padding:3px 8px; border-radius:4px; }
-  .leaflet-container { background: #060b13; }
-  .panel-note { position: absolute; bottom: 14px; left: 14px; z-index: 500; background: rgba(6,11,19,0.85); border: 1px solid var(--line); padding: 8px 12px; border-radius: 6px; font-size: 10.5px; color: var(--text-dim); max-width: 320px; line-height: 1.5; }
-  .panel-note b { color: var(--text); }
-  .train-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--phosphor); border: 2px solid #eafff2; box-shadow: 0 0 10px rgba(57,255,142,0.9); }
-  .train-label { font-family: var(--mono); font-size: 10px; color: var(--phosphor); background: rgba(6,11,19,0.75); padding: 1px 5px; border-radius: 3px; white-space: nowrap; transform: translate(10px, -6px); border: 1px solid rgba(57,255,142,0.25); }
-  .leaflet-popup-content-wrapper { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 6px; }
-  .leaflet-popup-tip { background: var(--panel); }
-  .popup-title { font-family: var(--grotesk); font-weight: 700; font-size: 15px; color: #eef7f1; }
-  .popup-row { font-size: 11px; color: var(--text-dim); margin-top: 3px; }
-  .popup-row b { color: var(--text); }
+:root{--bg:#060b13;--panel:#0c1522;--panel2:#101d2d;--line:#1b2c40;--green:#39ff8e;--yellow:#ffb020;--red:#ff4d4d;--blue:#48a9ff;--text:#d7e6ee;--muted:#6f8ba0;--mono:'IBM Plex Mono',monospace;--grotesk:'Barlow Condensed','Arial Narrow',sans-serif}
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono)}
+.app{display:grid;grid-template-columns:340px 1fr;height:100vh}.sidebar{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}.brand{padding:18px;border-bottom:1px solid var(--line);position:relative}.brand-title{font:800 28px var(--grotesk);text-transform:uppercase;color:#f2fbf6}.brand-title span{color:var(--green)}.brand-sub{margin-top:4px;color:var(--muted);font-size:10px;letter-spacing:1.3px;text-transform:uppercase}.status-badge{position:absolute;right:18px;top:18px;font-size:9px;letter-spacing:1px;padding:4px 6px;border-radius:3px;text-align:right;line-height:1.4}.status-badge.live{color:var(--green);border:1px solid #287d51;background:#0b281a}.status-badge.fallback{color:var(--yellow);border:1px solid #80601e;background:#291f0a}.clock{margin-top:12px;font-size:20px;color:var(--green);letter-spacing:2px}.clock-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.4px}
+.list-head{padding:10px 18px;border-bottom:1px solid var(--line);font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between}.train-list{overflow:auto;flex:1}.train-row{padding:12px 18px;border-bottom:1px solid var(--line);cursor:pointer}.train-row:hover,.train-row.active{background:var(--panel2)}.row-top{display:flex;justify-content:space-between;align-items:center;font:700 15px var(--grotesk)}.row-route{font-size:10px;color:var(--muted);margin-top:2px}.row-meta{display:flex;justify-content:space-between;align-items:center;margin-top:7px;font-size:10px}.delay{font-weight:700}.delay.green{color:var(--green)}.delay.yellow{color:var(--yellow)}.delay.red{color:var(--red)}.delay.unknown{color:var(--muted)}.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px;vertical-align:middle}.dot-green{background:var(--green);box-shadow:0 0 7px var(--green)}.dot-yellow{background:var(--yellow);box-shadow:0 0 7px var(--yellow)}.dot-red{background:var(--red);box-shadow:0 0 7px var(--red)}.dot-unknown{background:var(--muted)}.empty{padding:24px 18px;color:var(--muted);font-size:11px;line-height:1.6}
+.maps{position:relative;min-width:0}.map{height:100%;width:100%}.leaflet-container{background:#060b13}.leaflet-control-attribution{background:rgba(6,11,19,.82)!important;color:#71889b!important}.leaflet-control-attribution a{color:#9ab7c8!important}.leaflet-popup-content-wrapper{background:var(--panel);color:var(--text);border:1px solid var(--line)}.leaflet-popup-tip{background:var(--panel)}.popup-title{font:700 16px var(--grotesk);color:#eef7f1}.popup-row{font-size:11px;color:var(--muted);margin-top:4px}.popup-row b{color:var(--text)}
+.train-marker{width:15px;height:15px;border-radius:50%;border:2px solid #fff}.train-marker.green{background:var(--green);box-shadow:0 0 12px var(--green)}.train-marker.yellow{background:var(--yellow);box-shadow:0 0 12px var(--yellow)}.train-marker.red{background:var(--red);box-shadow:0 0 12px var(--red)}.train-marker.unknown{background:var(--muted)}.train-label{font:600 10px var(--mono);padding:2px 5px;border-radius:3px;background:rgba(6,11,19,.85);border:1px solid var(--line);white-space:nowrap;color:#d7e6ee}
+.map-toolbar{position:absolute;z-index:1000;top:16px;right:16px;display:flex;flex-direction:column;gap:8px}.map-btn{border:1px solid var(--line);background:rgba(12,21,34,.94);color:var(--text);border-radius:7px;padding:10px 12px;font:600 11px var(--mono);cursor:pointer;box-shadow:0 4px 18px rgba(0,0,0,.25)}.map-btn:hover{background:#142238}.map-btn.active{border-color:#347fbb;color:var(--blue)}.map-btn:disabled{opacity:.6;cursor:wait}
+.legend{position:absolute;z-index:1000;left:16px;bottom:18px;background:rgba(6,11,19,.9);border:1px solid var(--line);border-radius:7px;padding:10px 12px;font-size:10px;color:var(--muted);backdrop-filter:blur(6px)}.legend-title{color:var(--text);font-weight:700;margin-bottom:7px}.legend-item{margin:5px 0}.legend .status-dot{margin-right:7px}
+.user-marker{width:18px;height:18px;border-radius:50%;background:var(--blue);border:3px solid white;box-shadow:0 0 0 7px rgba(72,169,255,.2),0 0 16px rgba(72,169,255,.9)}
+@media(max-width:860px){.app{grid-template-columns:1fr;grid-template-rows:290px 1fr;height:100vh}.sidebar{border-right:0;border-bottom:1px solid var(--line)}.maps{min-height:0}.map-toolbar{top:10px;right:10px}.legend{bottom:10px;left:10px}}
 </style>
 </head>
 <body>
 <div class="app">
-  <aside class="sidebar">
-    <div class="brand">
-      <div id="statusBadge" class="status-badge fallback">MODALITÀ<br>OFFLINE</div>
-      <div class="brand-title">Train<span>Radar</span>24</div>
-      <div class="brand-sub">Servizio Novara &middot; dati Trenord reali</div>
-      <div class="clock" id="clock">--:--:--</div>
-      <div class="clock-label">orario reale di sistema</div>
-    </div>
-    <div class="list-head"><span>Treni in transito ora</span><span id="activeCount">0</span></div>
-    <div class="train-list" id="trainList"></div>
-  </aside>
-  <div class="maps">
-    <div id="map">
-      <div class="panel-note">
-        <b>Cos'è questo:</b> le corse mostrate sono reali (linee S6, R27, R25 di Trenord, orario di un giorno feriale), lette dal feed GTFS ufficiale. La posizione è <b>interpolata dall'orario</b>, non GPS live — ma i treni, gli orari e le fermate sono quelli veri.
-      </div>
-    </div>
-    <div id="overview">
-      <div class="overview-label">Dove si trova Novara in Italia</div>
-    </div>
+<aside class="sidebar">
+  <div class="brand">
+    <div id="statusBadge" class="status-badge fallback">DATI<br>STATICI</div>
+    <div class="brand-title">Train<span>Radar</span>24</div>
+    <div class="brand-sub">Servizio Novara · Trenord</div>
+    <div class="clock" id="clock">--:--:--</div>
+    <div class="clock-label">orario reale di sistema</div>
   </div>
+  <div class="list-head"><span>Treni in transito</span><span id="activeCount">0</span></div>
+  <div class="train-list" id="trainList"></div>
+</aside>
+<main class="maps">
+  <div id="map" class="map"></div>
+  <div class="map-toolbar">
+    <button id="locateBtn" class="map-btn">📍 La mia posizione</button>
+    <button id="followBtn" class="map-btn" style="display:none">◎ Segui posizione</button>
+  </div>
+  <div class="legend">
+    <div class="legend-title">Ritardo treno</div>
+    <div class="legend-item"><span class="status-dot dot-green"></span>0–4 min</div>
+    <div class="legend-item"><span class="status-dot dot-yellow"></span>5–30 min</div>
+    <div class="legend-item"><span class="status-dot dot-red"></span>&gt;30 min</div>
+  </div>
+</main>
 </div>
-
 <script>
-/* =========================================================================
-   FRONTEND — si collega al backend reale (server.js) via API.
-   Se il backend non è raggiungibile (demo offline / file aperto da solo),
-   ricade su un calcolo locale identico, usando gli stessi dati GTFS
-   incorporati in trips.json — così la demo funziona comunque, ma la
-   versione "vera" è quella con il backend online.
-   ========================================================================= */
+const API_BASE='';
+const POLL_MS=15000;
+const ROUTE_NAMES={S6:'Novara–Milano Passante–Treviglio',R27:'Novara–Saronno–Milano',R25:'Novara–Mortara'};
+let fallbackTrips=null,markers={},activeCode=null,userMarker=null,userAccuracy=null,userWatchId=null,followUser=false;
 
-const API_BASE = "http://localhost:3000"; // <-- sostituire con l'URL del backend una volta deployato
-const POLL_MS = 10000;
+function delayClass(delay){if(delay===null||delay===undefined||Number.isNaN(Number(delay)))return'unknown';const n=Number(delay);if(n<5)return'green';if(n<=30)return'yellow';return'red'}
+function delayLabel(delay){if(delay===null||delay===undefined||Number.isNaN(Number(delay)))return'Ritardo n/d';return Number(delay)<=0?'In orario':`+${Math.round(Number(delay))} min`}
+function markerIcon(delay){const c=delayClass(delay);return L.divIcon({className:'',html:`<div class="train-marker ${c}"></div>`,iconSize:[15,15],iconAnchor:[7,7]})}
+function userIcon(){return L.divIcon({className:'',html:'<div class="user-marker"></div>',iconSize:[18,18],iconAnchor:[9,9]})}
+function popupHtml(t){const d=delayLabel(t.delay_min);return `<div class="popup-title">${t.route||'Treno'} · ${t.trip_id||''}</div><div class="popup-row">${t.origin||''} → ${t.destination||''}</div><div class="popup-row">Ritardo: <b>${d}</b></div><div class="popup-row">Prossima fermata: <b>${t.nextStop||'—'}</b></div><div class="popup-row">Posizione: <b>stimata da orario</b></div>`}
 
-const ROUTE_NAMES = { S6: "Novara–Milano Passante–Treviglio", R27: "Novara–Saronno–Milano", R25: "Novara–Mortara" };
+const map=L.map('map',{zoomControl:false}).setView([45.4511,8.6245],9.7);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:18,attribution:'&copy; OpenStreetMap contributors &copy; CARTO'}).addTo(map);
+L.control.zoom({position:'bottomright'}).addTo(map);
+L.circleMarker([45.4511,8.6245],{radius:5,color:'#ffb020',fillColor:'#ffb020',fillOpacity:1,weight:2}).addTo(map).bindPopup('<div class="popup-title">Novara</div><div class="popup-row">Nodo di riferimento</div>');
 
-let usingFallback = false;
-let fallbackTrips = null;
+async function loadFallback(){if(fallbackTrips)return fallbackTrips;const r=await fetch('trips.json');if(!r.ok)throw new Error('trips.json non disponibile');fallbackTrips=await r.json();return fallbackTrips}
+function estimateLocal(trip,nowMin){const s=trip.stops,dep=s[0].dep_min,arr=s[s.length-1].arr_min;if(nowMin<dep-5||nowMin>arr+5)return null;if(nowMin<=dep)return{status:'not_departed',lat:s[0].lat,lon:s[0].lon,nextStop:s[0].name,etaMin:Math.max(0,Math.round(dep-nowMin))};if(nowMin>=arr)return{status:'arrived',lat:s[s.length-1].lat,lon:s[s.length-1].lon,nextStop:null,etaMin:0};for(let i=0;i<s.length-1;i++){const a=s[i],b=s[i+1];if(nowMin>=a.dep_min&&nowMin<=b.arr_min){const t=(nowMin-a.dep_min)/((b.arr_min-a.dep_min)||1);return{status:'running',lat:a.lat+(b.lat-a.lat)*t,lon:a.lon+(b.lon-a.lon)*t,fromStop:a.name,nextStop:b.name,etaMin:Math.max(0,Math.round(b.arr_min-nowMin)),progress:Math.round(t*100)}}}return null}
+async function fallbackData(){const trips=await loadFallback();const d=new Date(),now=d.getHours()*60+d.getMinutes()+d.getSeconds()/60;const trains=[];for(const trip of trips){const p=estimateLocal(trip,now);if(!p)continue;trains.push({trip_id:trip.trip_id,route:trip.route,route_name:ROUTE_NAMES[trip.route]||trip.route,dep:trip.dep,arr:trip.arr,origin:trip.stops[0].name,destination:trip.stops[trip.stops.length-1].name,delay_min:trip.delay_min??null,...p})}return{trains,reference_minutes:now,source:'GTFS static'}}
+async function fetchTrains(){try{const r=await fetch(API_BASE+'/api/trains',{cache:'no-store',signal:AbortSignal.timeout(4000)});if(!r.ok)throw new Error('API');const d=await r.json();setBadge(d.realtime===true?'live':'fallback',d.source||'API');return d}catch(e){setBadge('fallback','DATI STATICI');return fallbackData()}}
+function setBadge(kind,text){const b=document.getElementById('statusBadge');b.className='status-badge '+(kind==='live'?'live':'fallback');b.innerHTML=kind==='live'?'LIVE<br>REAL-TIME':`${text||'DATI'}<br>FALLBACK`}
+function renderList(trains){const list=document.getElementById('trainList');document.getElementById('activeCount').textContent=trains.length;if(!trains.length){list.innerHTML='<div class="empty">Nessun treno rilevato in questo momento. I dati vengono aggiornati automaticamente.</div>';return}list.innerHTML=trains.map(t=>{const c=delayClass(t.delay_min);return `<div class="train-row ${activeCode===t.trip_id?'active':''}" data-id="${t.trip_id}"><div class="row-top"><span>${t.route||'TRN'} · ${t.trip_id||''}</span><span class="delay ${c}"><span class="status-dot dot-${c}"></span>${delayLabel(t.delay_min)}</span></div><div class="row-route">${t.origin||''} → ${t.destination||''}</div><div class="row-meta"><span>${t.status==='running'?'In viaggio':t.status==='not_departed'?'In partenza':'Arrivato'}</span><span>Prossima: ${t.nextStop||'—'}</span></div></div>`}).join('');list.querySelectorAll('.train-row').forEach(row=>row.addEventListener('click',()=>{activeCode=row.dataset.id;const m=markers[activeCode];if(m){map.setView(m.getLatLng(),Math.max(map.getZoom(),12));m.openPopup()}renderList(trains)}))}
+function renderMarkers(trains){const seen=new Set();for(const t of trains){if(!Number.isFinite(Number(t.lat))||!Number.isFinite(Number(t.lon)))continue;seen.add(t.trip_id);if(!markers[t.trip_id])markers[t.trip_id]=L.marker([t.lat,t.lon],{icon:markerIcon(t.delay_min)}).addTo(map);else markers[t.trip_id].setLatLng([t.lat,t.lon]).setIcon(markerIcon(t.delay_min));markers[t.trip_id].bindTooltip(`${t.route||''} · ${t.trip_id||''}`,{className:'train-label',direction:'right',offset:[8,0]});markers[t.trip_id].bindPopup(popupHtml(t))}Object.keys(markers).forEach(id=>{if(!seen.has(id)){map.removeLayer(markers[id]);delete markers[id]}})}
+async function refresh(){try{const d=await fetchTrains();renderList(d.trains||[]);renderMarkers(d.trains||[])}catch(e){document.getElementById('trainList').innerHTML='<div class="empty">Errore nel caricamento dei dati.</div>'}}
+function updateClock(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('it-IT',{hour12:false})}
+setInterval(updateClock,1000);updateClock();refresh();setInterval(refresh,POLL_MS);
 
-async function loadFallbackData() {
-  if (fallbackTrips) return fallbackTrips;
-  const res = await fetch("trips.json");
-  fallbackTrips = await res.json();
-  return fallbackTrips;
-}
-
-function haversine(lat1, lon1, lat2, lon2) {
-  const R = 6371, toRad = d => d * Math.PI / 180;
-  const dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
-  return 2 * R * Math.asin(Math.sqrt(a));
-}
-
-function estimatePositionLocal(trip, nowMin) {
-  const stops = trip.stops;
-  const depMin = stops[0].dep_min, arrMin = stops[stops.length-1].arr_min;
-  if (nowMin < depMin - 5 || nowMin > arrMin + 5) return null;
-  if (nowMin <= depMin) return { status: "not_departed", lat: stops[0].lat, lon: stops[0].lon, nextStop: stops[0].name, etaMin: Math.max(0, Math.round(depMin-nowMin)) };
-  if (nowMin >= arrMin) return { status: "arrived", lat: stops[stops.length-1].lat, lon: stops[stops.length-1].lon, nextStop: null, etaMin: 0 };
-  for (let i=0; i<stops.length-1; i++) {
-    const a = stops[i], b = stops[i+1];
-    if (nowMin >= a.dep_min && nowMin <= b.arr_min) {
-      const span = (b.arr_min - a.dep_min) || 1;
-      const t = (nowMin - a.dep_min) / span;
-      return { status: "running", lat: a.lat + (b.lat-a.lat)*t, lon: a.lon + (b.lon-a.lon)*t, fromStop: a.name, nextStop: b.name, etaMin: Math.max(0, Math.round(b.arr_min-nowMin)), progress: Math.round(t*100) };
-    }
-  }
-  return null;
-}
-
-async function fetchTrainsLocalFallback() {
-  const trips = await loadFallbackData();
-  const now = new Date();
-  const nowMin = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
-  const trains = [];
-  for (const trip of trips) {
-    const pos = estimatePositionLocal(trip, nowMin);
-    if (!pos) continue;
-    trains.push({
-      trip_id: trip.trip_id, route: trip.route, route_name: ROUTE_NAMES[trip.route] || trip.route,
-      dep: trip.dep, arr: trip.arr, origin: trip.stops[0].name, destination: trip.stops[trip.stops.length-1].name,
-      ...pos
-    });
-  }
-  return { trains, reference_minutes: nowMin };
-}
-
-async function fetchTrains() {
-  try {
-    const res = await fetch(API_BASE + "/api/trains", { signal: AbortSignal.timeout(2500) });
-    if (!res.ok) throw new Error("api not ok");
-    const data = await res.json();
-    usingFallback = false;
-    return data;
-  } catch (e) {
-    usingFallback = true;
-    return await fetchTrainsLocalFallback();
-  }
-}
-
-// ---- Mappa di dettaglio (zona Novara) ----
-const map = L.map('map', { zoomControl: false, attributionControl: false }).setView([45.5, 8.85], 9.4);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 14 }).addTo(map);
-L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-// Marker fisso su Novara per riferimento
-L.circleMarker([45.4511, 8.6245], { radius: 5, color: '#ffb020', fillColor: '#ffb020', fillOpacity: 1, weight: 2 })
-  .addTo(map).bindPopup('<div class="popup-title">Novara</div><div class="popup-row">Nodo di riferimento del servizio</div>');
-
-// ---- Mappa d'insieme: Italia con Novara localizzata ----
-const overview = L.map('overview', { zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false, touchZoom: false })
-  .setView([42.3, 12.5], 4.7);
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 8 }).addTo(overview);
-L.circleMarker([45.4511, 8.6245], { radius: 6, color: '#ffb020', fillColor: '#ffb020', fillOpacity: 1, weight: 2 })
-  .addTo(overview).bindPopup('<div class="popup-title">Novara</div>');
-L.marker([45.4511, 8.6245], {
-  icon: L.divIcon({ className: '', html: '<div style="font-family:IBM Plex Mono, monospace; font-size:11px; color:#ffb020; background:rgba(6,11,19,0.8); padding:2px 6px; border-radius:4px; border:1px solid rgba(255,176,32,0.4); white-space:nowrap; transform: translate(10px,-8px)">Novara</div>' })
-}).addTo(overview);
-
-const markers = {};
-let activeCode = null;
-
-function fmtClock(d) {
-  return d.toLocaleTimeString('it-IT', { hour12: false });
-}
-
-function renderList(trains) {
-  const list = document.getElementById('trainList');
-  if (trains.length === 0) {
-    list.innerHTML = '<div class="empty">Nessun treno in transito nella finestra oraria corrente. Prova a riaprire la pagina durante l\'orario di punta (7:00–9:00 o 17:00–19:00), oppure aggiorna trips.json con un nuovo estratto GTFS che copra l\'orario attuale.</div>';
-    document.getElementById('activeCount').textContent = 0;
-    return;
-  }
-  list.innerHTML = '';
-  let running = 0;
-  trains.sort((a,b) => (a.status==='running'?0:1) - (b.status==='running'?0:1));
-  trains.forEach(t => {
-    if (t.status === 'running') running++;
-    const row = document.createElement('div');
-    row.className = 'train-row status-' + t.status + (t.trip_id === activeCode ? ' active' : '');
-    const statusText = t.status === 'running' ? 'in transito' : (t.status === 'not_departed' ? 'in partenza' : 'arrivato');
-    const etaText = t.status === 'running' ? `arrivo tra ${t.etaMin} min` : (t.status === 'not_departed' ? `parte tra ${t.etaMin} min` : '');
-    row.innerHTML = `
-      <div class="row-top"><span>${t.route} · ${t.dep.slice(0,5)}</span></div>
-      <div class="row-route">${t.origin} → ${t.destination}</div>
-      <div class="row-meta"><span><span class="status-dot"></span><span class="status-label">${statusText}</span></span><span class="eta">${etaText}</span></div>`;
-    row.onclick = () => {
-      activeCode = t.trip_id;
-      map.flyTo([t.lat, t.lon], 10, { duration: 0.6 });
-      if (markers[t.trip_id]) markers[t.trip_id].openPopup();
-      renderList(trains);
-    };
-    list.appendChild(row);
-  });
-  document.getElementById('activeCount').textContent = running;
-}
-
-function updateMarkers(trains) {
-  const seen = new Set();
-  trains.forEach(t => {
-    if (t.status !== 'running') return;
-    seen.add(t.trip_id);
-    let m = markers[t.trip_id];
-    if (!m) {
-      const icon = L.divIcon({ className: 'train-icon', html: `<div class="train-dot"></div><div class="train-label">${t.route}</div>`, iconSize: [12,12], iconAnchor: [6,6] });
-      m = L.marker([t.lat, t.lon], { icon }).addTo(map);
-      markers[t.trip_id] = m;
-    } else {
-      m.setLatLng([t.lat, t.lon]);
-    }
-    m.bindPopup(`
-      <div class="popup-title">${t.route} — ${t.route_name}</div>
-      <div class="popup-row">${t.origin} → ${t.destination}</div>
-      <div class="popup-row">Partenza: <b>${t.dep.slice(0,5)}</b> · Arrivo: <b>${t.arr.slice(0,5)}</b></div>
-      <div class="popup-row">Prossima fermata: <b>${t.nextStop || '—'}</b> (${t.etaMin} min)</div>
-    `);
-  });
-  Object.keys(markers).forEach(id => {
-    if (!seen.has(id)) { map.removeLayer(markers[id]); delete markers[id]; }
-  });
-}
-
-async function tick() {
-  document.getElementById('clock').textContent = fmtClock(new Date());
-  const data = await fetchTrains();
-  const badge = document.getElementById('statusBadge');
-  if (usingFallback) {
-    badge.textContent = ''; badge.className = 'status-badge fallback';
-    badge.innerHTML = 'CALCOLO LOCALE<br>backend offline';
-  } else {
-    badge.className = 'status-badge live';
-    badge.innerHTML = 'BACKEND LIVE<br>dati dal server';
-  }
-  renderList(data.trains);
-  updateMarkers(data.trains);
-}
-
-tick();
-setInterval(tick, POLL_MS);
+const locateBtn=document.getElementById('locateBtn'),followBtn=document.getElementById('followBtn');
+function showUserPosition(pos){const lat=pos.coords.latitude,lon=pos.coords.longitude,acc=pos.coords.accuracy||0;const ll=[lat,lon];if(!userMarker)userMarker=L.marker(ll,{icon:userIcon(),zIndexOffset:1000}).addTo(map);else userMarker.setLatLng(ll);if(!userAccuracy)userAccuracy=L.circle(ll,{radius:acc,color:'#48a9ff',fillColor:'#48a9ff',fillOpacity:.12,weight:1}).addTo(map);else userAccuracy.setLatLng(ll).setRadius(acc);if(followUser)map.setView(ll,Math.max(map.getZoom(),14));locateBtn.textContent='📍 Posizione attiva';locateBtn.classList.add('active');followBtn.style.display='block'}
+function geoError(err){locateBtn.disabled=false;locateBtn.textContent=err.code===1?'📍 Permesso negato':'📍 Riprova posizione';setTimeout(()=>{locateBtn.textContent='📍 La mia posizione';locateBtn.classList.remove('active')},2500)}
+function startGeolocation(){if(!('geolocation'in navigator)){geoError({code:2});return}locateBtn.disabled=true;locateBtn.textContent='📍 Ricerca…';if(userWatchId!==null)navigator.geolocation.clearWatch(userWatchId);userWatchId=navigator.geolocation.watchPosition(showUserPosition,geoError,{enableHighAccuracy:true,maximumAge:5000,timeout:10000});navigator.geolocation.getCurrentPosition(p=>{showUserPosition(p);map.setView([p.coords.latitude,p.coords.longitude],14)},geoError,{enableHighAccuracy:true,maximumAge:0,timeout:10000})}
+locateBtn.addEventListener('click',()=>{followUser=true;startGeolocation()});followBtn.addEventListener('click',()=>{followUser=!followUser;followBtn.textContent=followUser?'◎ Segui posizione':'◎ Posizione libera';if(followUser&&userMarker)map.setView(userMarker.getLatLng(),Math.max(map.getZoom(),14))});
 </script>
 </body>
 </html>
