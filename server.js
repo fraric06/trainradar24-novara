@@ -130,12 +130,14 @@ app.get("/api/trains",(req,res)=>{
       const delay=live?live.delayMin:0;
       const pos=estimatePosition(trip,now,delay);
       if(!pos)continue;
+      const scheduledTrainNumber=String(trip.trip_id||"").split("-")[0];
       trains.push({
         trip_id:trip.trip_id,route:trip.route,route_name:ROUTE_NAMES[trip.route]||trip.route,
         dep:trip.dep,arr:trip.arr,origin:trip.stops[0].name,destination:trip.stops.at(-1).name,
+        train_number:live?.number||scheduledTrainNumber,
         delay_min:delay,delay_known:Boolean(live),
         delay_status:delay<5?"on_time":delay<=30?"delayed":"severe_delay",
-        realtime:Boolean(live),realtime_train_number:live?.number||null,realtime_updated_at:realtime.updatedAt,
+        realtime:Boolean(live),realtime_train_number:live?.number||scheduledTrainNumber,realtime_updated_at:realtime.updatedAt,
         cancelled:live?.cancelled||false,...pos
       });
     }
