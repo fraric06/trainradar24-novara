@@ -67,6 +67,17 @@ function estimatePosition(trip,nowMin,delay=0){
   return null;
 }
 
+// GTFS trip_id is an internal identifier. The number shown to users must be the real railway train number.
+// For the current Novara-area timetable the feed encodes it consistently by route:
+// S6: 124617 -> 24617, R25: 111250 -> 11250, R27: 1904214 -> 214.
+function scheduledTrainNumber(trip){
+  const raw=String(trip.trip_id||"").split("-")[0];
+  if(trip.route==="S6" && /^124\d+$/.test(raw)) return raw.slice(1);
+  if(trip.route==="R25" && /^111\d+$/.test(raw)) return raw.slice(1);
+  if(trip.route==="R27" && /^1904\d+$/.test(raw)) return raw.slice(4);
+  return null;
+}
+
 let realtime={available:false,updatedAt:null,records:[],error:null};
 function fetchJson(url){
   return new Promise((resolve,reject)=>{
@@ -130,14 +141,14 @@ app.get("/api/trains",(req,res)=>{
       const delay=live?live.delayMin:0;
       const pos=estimatePosition(trip,now,delay);
       if(!pos)continue;
-      const scheduledTrainNumber=String(trip.trip_id||"").split("-")[0];
+      const scheduledNumber=scheduledTrainNumber(trip);
       trains.push({
         trip_id:trip.trip_id,route:trip.route,route_name:ROUTE_NAMES[trip.route]||trip.route,
         dep:trip.dep,arr:trip.arr,origin:trip.stops[0].name,destination:trip.stops.at(-1).name,
-        train_number:live?.number||scheduledTrainNumber,
+        train_number:live?.number||scheduledNumber||"",
         delay_min:delay,delay_known:Boolean(live),
         delay_status:delay<5?"on_time":delay<=30?"delayed":"severe_delay",
-        realtime:Boolean(live),realtime_train_number:live?.number||scheduledTrainNumber,realtime_updated_at:realtime.updatedAt,
+        realtime:Boolean(live),realtime_train_number:live?.number||scheduledNumber||"",realtime_updated_at:realtime.updatedAt,
         cancelled:live?.cancelled||false,...pos
       });
     }
