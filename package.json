@@ -1,16 +1,17 @@
 {
   "name": "trainradar24-novara-service",
-  "version": "1.0.0",
-  "description": "Backend TrainRadar24 — posizione stimata treni zona Novara da dati GTFS reali Trenord",
+  "version": "1.1.0",
+  "description": "TrainRadar24 Piemonte + Lombardia",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node bootstrap.js"
   },
   "engines": {
     "node": ">=20 <23"
   },
   "dependencies": {
     "express": "^4.19.2",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "adm-zip": "^0.5.16"
   }
 }
