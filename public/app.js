@@ -1,6 +1,6 @@
 (function(){'use strict';
 const $=id=>document.getElementById(id),markers=new Map(),memory=new Map();
-const MEMORY_MS=180000,RAIL_CACHE_MS=21600000,DISPLAY_WINDOW=45;let map,userMarker,userAccuracy,followUser=false,allTrains=[];
+const MEMORY_MS=180000,RAIL_CACHE_MS=21600000,DISPLAY_WINDOW=90;let map,userMarker,userAccuracy,followUser=false,allTrains=[];
 const CAT={RV:{label:'RV',cls:'rv'},REG:{label:'REG',cls:'reg'},SFM:{label:'SFM',cls:'sfm'},SUB:{label:'SUB',cls:'sub'},MXP:{label:'MXP',cls:'mxp'}};
 function esc(v){return String(v??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]))}
 function category(t){const x=String(t.category||'').toUpperCase()+' '+String(t.route_name||'').toUpperCase()+' '+String(t.route||'').toUpperCase();if(x.includes('REGIONALE VELOCE')||/\bRV\b/.test(x)||(/TORINO/.test(x)&&/MILANO/.test(x)))return'RV';if(x.includes('MALPENSA')||x.includes('MXP'))return'MXP';if(x.includes('SFM'))return'SFM';if(/^S\d/.test(String(t.route||''))||x.includes('SUBURB'))return'SUB';return'REG'}
