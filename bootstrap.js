@@ -5,8 +5,9 @@ const localPath=path.join(__dirname,'data','trips.json');
 const serverPath=path.join(__dirname,'server.js');
 function patchRuntimeConfig(){
   let source=fs.readFileSync(serverPath,'utf8');
-  source=source.replace(/const DISPLAY_WINDOW=\d+,MAX_VISIBLE=500;/,'const DISPLAY_WINDOW=90,MAX_VISIBLE=500;');
+  source=source.replace(/const DISPLAY_WINDOW=\d+,MAX_VISIBLE=500;/,'const DISPLAY_WINDOW=5,MAX_VISIBLE=500;');
   source=source.replace(/const STATION_IDS=\[[^\]]*\];/,"const STATION_IDS=['S00248','S00023','S00034','S01066','S01037','S00219','S01700'];");
+  source=source.replace(/function category\(trip\)\{[\s\S]*?\}function scheduledTrainNumber/,"function category(trip){if(trip.region){const x=String(trip.category||'')+' '+String(trip.route_name||'')+' '+String(trip.route||'');const names=(trip.stops||[]).map(s=>String(s.name||'')).join(' ');if(x.toUpperCase().includes('REGIONALE VELOCE')||/\\bRV\\b/i.test(x)||((/TORINO/i.test(x)||/TORINO/i.test(names))&&(/MILANO/i.test(x)||/MILANO/i.test(names))))return'RV';return'REG'}const x=`${trip.category||''} ${trip.route_name||''} ${trip.route||''}`.toUpperCase();const names=(trip.stops||[]).map(s=>String(s.name||'').toUpperCase()).join(' ');if(x.includes('REGIONALE VELOCE')||/\\bRV\\b/.test(x)||((/TORINO/.test(x)||/TORINO/.test(names))&&(/MILANO/.test(x)||/MILANO/.test(names))))return'RV';if(x.includes('MALPENSA')||x.includes('MXP'))return'MXP';if(x.includes('SFM'))return'SFM';if(/^S\\d/.test(String(trip.route||''))||x.includes('SUBURB'))return'SUB';return'REG'}function scheduledTrainNumber");
   fs.writeFileSync(serverPath,source);
 }
 (async()=>{
@@ -32,6 +33,6 @@ function patchRuntimeConfig(){
     console.log(`GTFS regionale totale: ${regional.length} corse`);
     console.log(JSON.stringify(result.status));
   }catch(e){console.error('GTFS regionale non disponibile:',e.message)}
-  try{patchRuntimeConfig();console.log('Config live: finestra 90 min + Torino Porta Nuova/Milano Centrale per realtime');}catch(e){console.error('Config live non applicata:',e.message)}
+  try{patchRuntimeConfig();console.log('Config live: finestra 5 min + Torino Porta Nuova/Milano Centrale + regionali sempre REG/RV');}catch(e){console.error('Config live non applicata:',e.message)}
   require('./server');
 })();
