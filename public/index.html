@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TrainRadar24 — Piemonte + Lombardia</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="/app.css?v=20260825-railfix1">
+<link rel="stylesheet" href="/app.css?v=20260825-regional3">
 </head>
 <body>
 <div class="app">
@@ -21,10 +21,6 @@
       <div class="stat"><b id="red" class="r">0</b>&gt;30 min</div>
     </div>
     <div class="toptools">
-      <div class="select-row">
-        <select id="regionFilter" class="select"><option value="ALL">AREA · Piemonte + Lombardia</option><option value="piemonte">Piemonte</option><option value="lombardia">Lombardia</option></select>
-        <select id="typeFilter" class="select"><option value="ALL">TIPO TRENO · Tutti</option><option value="RV">RV · Regionali Veloci</option><option value="REG">REG · Regionali</option><option value="SFM">SFM · Torino</option><option value="SUB">SUB · Suburbani</option><option value="MXP">MXP · Malpensa Express</option></select>
-      </div>
       <button id="location" class="location">📍 La mia posizione</button>
       <div id="locationHint" class="hint">Attiva la geolocalizzazione per vedere i treni vicino a te.</div>
     </div>
@@ -36,7 +32,7 @@
       <button class="chip" data-cat="SUB">SUB <span class="n">0</span></button>
       <button class="chip" data-cat="MXP">MXP <span class="n">0</span></button>
     </div>
-    <div class="list-head"><span>TRENI ATTIVI · <span id="visibleCount">0</span></span><span id="updated">--:--:--</span></div>
+    <div class="list-head"><span>TRENI REGIONALI · <span id="visibleCount">0</span></span><span id="updated">--:--:--</span></div>
     <div class="list" id="list"><div class="empty">Caricamento rete ferroviaria regionale…</div></div>
   </aside>
   <main class="mapwrap">
@@ -49,6 +45,6 @@
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/app.js?v=20260825-railfix1"></script>
+<script src="/app.js?v=20260825-regional3"></script>
 </body>
 </html>
