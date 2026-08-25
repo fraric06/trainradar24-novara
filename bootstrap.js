@@ -5,7 +5,7 @@ const localPath=path.join(__dirname,'data','trips.json');
 const serverPath=path.join(__dirname,'server.js');
 function patchRuntimeConfig(){
   let source=fs.readFileSync(serverPath,'utf8');
-  source=source.replace(/const DISPLAY_WINDOW=\d+,MAX_VISIBLE=500;/,'const DISPLAY_WINDOW=45,MAX_VISIBLE=500;');
+  source=source.replace(/const DISPLAY_WINDOW=\d+,MAX_VISIBLE=500;/,'const DISPLAY_WINDOW=90,MAX_VISIBLE=500;');
   source=source.replace(/const STATION_IDS=\[[^\]]*\];/,"const STATION_IDS=['S00248','S00023','S00034','S01066','S01037','S00219','S01700'];");
   fs.writeFileSync(serverPath,source);
 }
@@ -32,6 +32,6 @@ function patchRuntimeConfig(){
     console.log(`GTFS regionale totale: ${regional.length} corse`);
     console.log(JSON.stringify(result.status));
   }catch(e){console.error('GTFS regionale non disponibile:',e.message)}
-  try{patchRuntimeConfig();console.log('Config live: finestra 45 min + Torino Porta Nuova/Milano Centrale per realtime');}catch(e){console.error('Config live non applicata:',e.message)}
+  try{patchRuntimeConfig();console.log('Config live: finestra 90 min + Torino Porta Nuova/Milano Centrale per realtime');}catch(e){console.error('Config live non applicata:',e.message)}
   require('./server');
 })();
