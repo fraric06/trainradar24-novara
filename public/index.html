@@ -3,36 +3,55 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>TrainRadar24 — Novara LIVE</title>
+<title>TrainRadar24 — Piemonte + Lombardia</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-<style>
-:root{--bg:#060b13;--panel:#0c1522;--panel2:#101d2e;--line:#1b2c40;--text:#d7e6ee;--dim:#71899b;--green:#39ff8e;--yellow:#ffb020;--red:#ff4d4d;--blue:#4da3ff;--rail:#657889;--railhi:#263b4d}*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.app{height:100%;display:grid;grid-template-columns:350px 1fr}.side{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden}.brand{padding:18px;border-bottom:1px solid var(--line)}.title{font:800 27px Arial,sans-serif;text-transform:uppercase}.title span{color:var(--green)}.sub{font-size:10px;color:var(--dim);letter-spacing:1.4px;margin-top:5px}.live{display:inline-block;margin-top:10px;padding:3px 7px;border:1px solid rgba(57,255,142,.4);color:var(--green);font-size:9px;border-radius:3px}.clock{float:right;color:var(--green);font-weight:700;font-size:18px;margin-top:9px}.stats{display:grid;grid-template-columns:repeat(3,1fr);border-bottom:1px solid var(--line)}.stat{padding:10px 8px;text-align:center;border-right:1px solid var(--line);font-size:10px;color:var(--dim)}.stat b{display:block;font-size:17px;margin-bottom:2px}.g{color:var(--green)}.y{color:var(--yellow)}.r{color:var(--red)}.tools{padding:10px;border-bottom:1px solid var(--line)}button{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:9px;border-radius:5px;cursor:pointer;font:inherit;font-size:11px}.hint{font-size:9px;color:var(--dim);line-height:1.5;margin-top:7px}.list-head{padding:9px 14px;font-size:10px;color:var(--dim);border-bottom:1px solid var(--line);display:flex;justify-content:space-between}.list{overflow:auto;flex:1}.row{padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer}.rowtop{display:flex;justify-content:space-between;font-family:Arial,sans-serif;font-weight:700}.route{font-size:10px;color:var(--dim);margin-top:3px}.meta{display:flex;justify-content:space-between;margin-top:7px;font-size:10px}.dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}.delay{font-weight:700}.stale{font-size:9px;color:var(--yellow);margin-top:5px}.empty{padding:20px 14px;color:var(--dim);font-size:11px;line-height:1.6}.mapwrap{position:relative;min-width:0}.map{height:100%;width:100%;background:#dfe6ea}.mapnote{position:absolute;left:14px;bottom:14px;z-index:500;background:rgba(6,11,19,.9);border:1px solid var(--line);border-radius:6px;padding:8px 11px;font-size:9px;color:var(--dim)}.mapnote b{color:var(--text)}.userdot{width:16px;height:16px;border-radius:50%;background:var(--blue);border:3px solid white;box-shadow:0 0 0 6px rgba(77,163,255,.2),0 0 14px rgba(77,163,255,.9)}.trainicon{width:14px;height:14px;border-radius:50%;border:2px solid white}@media(max-width:800px){.app{grid-template-columns:1fr;grid-template-rows:42vh 58vh}.side{grid-row:2;border-right:0;border-top:1px solid var(--line)}.mapwrap{grid-row:1}.mapnote{display:none}}
-</style>
+<link rel="stylesheet" href="/app.css?v=20260825">
 </head>
 <body>
-<div class="app"><aside class="side"><div class="brand"><div class="title">Train<span>Radar</span>24</div><div class="sub">NOVARA · TRENI IN TEMPO REALE</div><span class="live" id="liveBadge">● AVVIO</span><span class="clock" id="clock">--:--:--</span></div><div class="stats"><div class="stat"><b id="count" class="g">0</b>treni</div><div class="stat"><b id="yellow" class="y">0</b>5–30 min</div><div class="stat"><b id="red" class="r">0</b>&gt;30 min</div></div><div class="tools"><button id="locate">📍 La mia posizione</button><div class="hint" id="locationHint">Attiva la geolocalizzazione per vedere la tua posizione sulla mappa.</div></div><div class="list-head"><span>TRENI ATTIVI</span><span id="updated">--</span></div><div class="list" id="list"><div class="empty">Caricamento dati ferroviari…</div></div></aside><main class="mapwrap"><div id="map" class="map"></div><div class="mapnote"><b>● LIVE</b> · binari ferroviari OSM · posizione del treno agganciata alla ferrovia</div></main></div>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-row"><div><div class="logo">TRAIN<span>RADAR</span>24</div><div class="subtitle">PIEMONTE + LOMBARDIA · TRENI IN TEMPO REALE</div></div><div class="clock" id="clock">--:--:--</div></div>
+      <span class="live" id="liveBadge">● AVVIO</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="count" class="g">0</b>treni visibili</div>
+      <div class="stat"><b id="ontime" class="g">0</b>0–4 min</div>
+      <div class="stat"><b id="yellow" class="y">0</b>5–30 min</div>
+      <div class="stat"><b id="red" class="r">0</b>&gt;30 min</div>
+    </div>
+    <div class="toptools">
+      <div class="select-row">
+        <select id="regionFilter" class="select"><option value="ALL">AREA · Piemonte + Lombardia</option><option value="piemonte">Piemonte</option><option value="lombardia">Lombardia</option></select>
+        <select id="typeFilter" class="select"><option value="ALL">TIPO TRENO · Tutti</option><option value="RV">RV · Regionali Veloci</option><option value="REG">REG · Regionali</option><option value="SFM">SFM · Torino</option><option value="SUB">SUB · Suburbani</option><option value="MXP">MXP · Malpensa Express</option></select>
+      </div>
+      <button id="location" class="location">📍 La mia posizione</button>
+      <div id="locationHint" class="hint">Attiva la geolocalizzazione per vedere i treni vicino a te.</div>
+    </div>
+    <div class="chips">
+      <button class="chip active" data-cat="ALL">TUTTI <span class="n">0</span></button>
+      <button class="chip" data-cat="REG">REG <span class="n">0</span></button>
+      <button class="chip" data-cat="RV">RV <span class="n">0</span></button>
+      <button class="chip" data-cat="SFM">SFM <span class="n">0</span></button>
+      <button class="chip" data-cat="SUB">SUB <span class="n">0</span></button>
+      <button class="chip" data-cat="MXP">MXP <span class="n">0</span></button>
+    </div>
+    <div class="list-head"><span>TRENI ATTIVI · <span id="visibleCount">0</span></span><span id="updated">--:--:--</span></div>
+    <div class="list" id="list"><div class="empty">Caricamento rete ferroviaria regionale…</div></div>
+  </aside>
+  <main class="mapwrap">
+    <div id="map" class="map"></div>
+    <div class="map-toolbar">
+      <div class="map-title"><b>TRAINRADAR24</b> · rete ferroviaria regionale</div>
+      <button class="map-btn" id="searchBtn">⌕ RICERCA TRENO</button>
+      <button class="map-btn" id="fit">⌖ RETE REGIONALE</button>
+    </div>
+    <div class="network-box"><div>TRENI VISIBILI: <b id="networkTotal">0</b></div><div>Piemonte + Lombardia</div><div>Tracciati attivi + rete ferroviaria</div></div>
+    <div class="search-panel" id="searchPanel"><input id="searchInput" placeholder="Numero treno, linea, stazione…"><div class="search-results" id="searchResults"></div></div>
+    <div class="legend"><span><i style="background:#39ff8e"></i>0–4 min</span><span><i style="background:#ffb020"></i>5–30 min</span><span><i style="background:#ff4d4d"></i>&gt;30 min</span><span><i style="background:#91a0ad"></i>realtime n/d</span><span><i style="background:#ffbd2e"></i>RV</span></div>
+  </main>
+</div>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-(function(){'use strict';
-const $=id=>document.getElementById(id),markers=new Map(),memory=new Map();
-const MEMORY_MS=180000,RAIL_CACHE_MS=21600000;
-let map,userMarker,userAccuracy,followUser=false,lastTrains=[],railSegments=[],railwayReady=false,railwayLoading=false,railLayers=[];
-function c(t){if(!t.delay_known)return '#71899b';return t.delay_min<5?'#39ff8e':t.delay_min<=30?'#ffb020':'#ff4d4d'}
-function d(t){return t.delay_known?(t.delay_min<=0?'IN ORARIO':'+'+t.delay_min+' min'):'ritardo n/d'}
-function icon(color){return L.divIcon({className:'',html:'<div class="trainicon" style="background:'+color+';box-shadow:0 0 12px '+color+'"></div>',iconSize:[14,14],iconAnchor:[7,7]})}
-function esc(v){return String(v??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]))}
-function init(){if(typeof L==='undefined'){ $('liveBadge').textContent='● MAPPA OFFLINE';$('liveBadge').style.color='var(--red)';$('list').innerHTML='<div class="empty">Leaflet non è stato caricato.</div>';return false}map=L.map('map').setView([45.4511,8.6245],11);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'}).addTo(map);L.control.zoom({position:'bottomright'}).addTo(map);setTimeout(()=>map.invalidateSize(),100);return true}
-function popup(t){const color=c(t);return '<div><h3>'+esc(t.route)+' · '+(t.realtime_train_number?'Treno '+esc(t.realtime_train_number):'corsa')+'</h3><p><b>'+esc(t.origin)+'</b> → <b>'+esc(t.destination)+'</b></p><p>Ritardo: <b style="color:'+color+'">'+d(t)+'</b></p><p>Prossima fermata: <b>'+esc(t.nextStop||'—')+'</b></p><p>Posizione: '+(t.realtime?'realtime':'ultima posizione conosciuta')+'</p>'+(t._stale?'<p style="color:#ffb020">⚠ ultimo dato mantenuto temporaneamente</p>':'')+'</div>'}
-function mergeTrains(fresh){const now=Date.now();for(const t of fresh){t._memoryAt=now;memory.set(t.trip_id,t)}for(const [id,t] of memory)if(now-t._memoryAt>MEMORY_MS)memory.delete(id);return [...memory.values()]}
-function distanceKm(a,b,c,d){const R=6371,r=Math.PI/180,x=(c-a)*r,y=(d-b)*r;const q=Math.sin(x/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(y/2)**2;return 2*R*Math.asin(Math.sqrt(q))}
-function snapToRail(lat,lon){if(!railSegments.length)return [lat,lon];let best=null,bestD=Infinity;const latScale=111.32,lonScale=111.32*Math.cos(lat*Math.PI/180);for(const s of railSegments){if(lat<s.minLat-0.045||lat>s.maxLat+0.045||lon<s.minLon-0.055||lon>s.maxLon+0.055)continue;const ax=(s.a[1]-lon)*lonScale,ay=(s.a[0]-lat)*latScale,bx=(s.b[1]-lon)*lonScale,by=(s.b[0]-lat)*latScale;const dx=bx-ax,dy=by-ay,t=Math.max(0,Math.min(1,-(ax*dx+ay*dy)/(dx*dx+dy*dy||1)));const py=lat+(s.a[0]-lat)+(s.b[0]-s.a[0])*t,px=lon+(s.a[1]-lon)+(s.b[1]-s.a[1])*t;const dd=Math.hypot((py-lat)*latScale,(px-lon)*lonScale);if(dd<bestD){bestD=dd;best=[py,px]}}return bestD<=2.5?best:[lat,lon]}
-function buildRailSegments(ways){railSegments=[];for(const w of ways){const g=w.geometry||[];for(let i=1;i<g.length;i++){const a=[g[i-1].lat,g[i-1].lon],b=[g[i].lat,g[i].lon];railSegments.push({a,b,minLat:Math.min(a[0],b[0]),maxLat:Math.max(a[0],b[0]),minLon:Math.min(a[1],b[1]),maxLon:Math.max(a[1],b[1])})}}}
-function drawRailways(ways){for(const l of railLayers)map.removeLayer(l);railLayers=[];for(const w of ways){const g=(w.geometry||[]).map(p=>[p.lat,p.lon]);if(g.length<2)continue;const line=L.polyline(g,{color:'#657889',weight:2.4,opacity:.58,interactive:false});line.addTo(map);railLayers.push(line)}}
-async function loadRailways(){if(railwayLoading)return;railwayLoading=true;try{const cached=localStorage.getItem('trainradar24-railways');if(cached){const x=JSON.parse(cached);if(Date.now()-x.saved<RAIL_CACHE_MS&&Array.isArray(x.ways)){buildRailSegments(x.ways);drawRailways(x.ways);railwayReady=true;railwayLoading=false;render(lastTrains);return}}const q='[out:json][timeout:25];way["railway"="rail"](45.20,8.55,45.70,9.25);out geom;';const urls=['https://overpass-api.de/api/interpreter?data='+encodeURIComponent(q),'https://overpass.kumi.systems/api/interpreter?data='+encodeURIComponent(q)];let data=null;for(const u of urls){try{const r=await fetch(u,{cache:'no-store'});if(r.ok){data=await r.json();if(data?.elements?.length)break}}catch(e){}}if(!data?.elements?.length)throw Error('rete ferroviaria non disponibile');localStorage.setItem('trainradar24-railways',JSON.stringify({saved:Date.now(),ways:data.elements}));buildRailSegments(data.elements);drawRailways(data.elements);railwayReady=true;render(lastTrains)}catch(e){console.warn('OSM railway overlay:',e.message)}finally{railwayLoading=false}}
-function render(trains){lastTrains=trains; $('count').textContent=trains.length;$('yellow').textContent=trains.filter(t=>t.delay_known&&t.delay_min>=5&&t.delay_min<=30).length;$('red').textContent=trains.filter(t=>t.delay_known&&t.delay_min>30).length;$('updated').textContent=new Date().toLocaleTimeString('it-IT',{hour12:false});const active=new Set();$('list').innerHTML='';trains.forEach(t=>{active.add(t.trip_id);const color=c(t),row=document.createElement('div');row.className='row';row.innerHTML='<div class="rowtop"><span><span class="dot" style="background:'+color+'"></span>'+esc(t.route)+(t.realtime_train_number?' · '+esc(t.realtime_train_number):'')+'</span><span class="delay" style="color:'+color+'">'+d(t)+'</span></div><div class="route">'+esc(t.origin)+' → '+esc(t.destination)+'</div><div class="meta"><span>'+(t.status==='running'?'IN VIAGGIO':t.status==='not_departed'?'IN PARTENZA':'ARRIVATO')+'</span><span>→ '+esc(t.nextStop||'—')+'</span></div>'+(t._stale?'<div class="stale">⚠ ultimo dato mantenuto · in attesa del realtime</div>':'');row.onclick=()=>{const m=markers.get(t.trip_id);if(m){map.setView(m.getLatLng(),12);m.openPopup()}};$('list').appendChild(row);const raw=[Number(t.lat),Number(t.lon)],p=railwayReady?snapToRail(raw[0],raw[1]):raw;let m=markers.get(t.trip_id);if(!m){m=L.marker(p,{icon:icon(color)}).addTo(map);markers.set(t.trip_id,m)}else{m.setLatLng(p);m.setIcon(icon(color))}m.bindPopup(popup(t))});for(const [id,m] of markers)if(!active.has(id)){map.removeLayer(m);markers.delete(id)}}
-async function load(){try{const r=await fetch('/api/trains?ts='+Date.now(),{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);const data=await r.json();$('liveBadge').textContent=data.realtime_available?'● LIVE REALTIME':'● ORARI · REALTIME IN ATTESA';$('liveBadge').style.color=data.realtime_available?'var(--green)':'var(--yellow)';const fresh=Array.isArray(data.trains)?data.trains:[],now=Date.now();for(const t of fresh)t._stale=false;const ids=new Set(fresh.map(t=>t.trip_id));for(const [id,t] of memory)if(!ids.has(id)&&now-t._memoryAt<=MEMORY_MS)t._stale=true;const merged=mergeTrains(fresh);if(merged.length)render(merged);else $('list').innerHTML='<div class="empty">Nessun treno in corsa in questo istante. Aggiornamento automatico attivo.</div>'}catch(e){console.error(e);$('liveBadge').textContent='● API OFFLINE';$('liveBadge').style.color='var(--red)';const cached=mergeTrains([]);if(cached.length){cached.forEach(t=>t._stale=true);render(cached)}else $('list').innerHTML='<div class="empty">API ferroviaria non raggiungibile. Riprovo automaticamente.</div>'}}
-function locate(){if(!navigator.geolocation){$('locationHint').textContent='Geolocalizzazione non supportata.';return}$('locationHint').textContent='Richiesta posizione…';navigator.geolocation.watchPosition(p=>{const lat=p.coords.latitude,lon=p.coords.longitude,a=p.coords.accuracy;if(!userMarker)userMarker=L.marker([lat,lon],{icon:L.divIcon({className:'',html:'<div class="userdot"></div>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(map).bindPopup('<b>La tua posizione</b>');else userMarker.setLatLng([lat,lon]);if(userAccuracy)userAccuracy.setLatLng([lat,lon]).setRadius(a);else userAccuracy=L.circle([lat,lon],{radius:a,color:'#4da3ff',fillColor:'#4da3ff',fillOpacity:.08,weight:1}).addTo(map);if(!followUser){map.setView([lat,lon],13);followUser=true}$('locationHint').textContent='Posizione attiva · precisione ±'+Math.round(a)+' m'},e=>{$('locationHint').textContent=e.code===1?'Permesso posizione negato.':'Posizione non disponibile.'},{enableHighAccuracy:true,maximumAge:5000,timeout:10000})}
-$('locate').onclick=locate;function clock(){$('clock').textContent=new Date().toLocaleTimeString('it-IT',{hour12:false})}clock();setInterval(clock,1000);if(init()){loadRailways();load();setInterval(load,15000)}})();
-</script>
+<script src="/app.js?v=20260825"></script>
 </body>
 </html>
