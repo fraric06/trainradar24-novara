@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>TrainRadar24 — Piemonte + Lombardia</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="/app.css?v=20260825-regional3">
+<link rel="stylesheet" href="/app.css?v=20260825-regional4">
 </head>
 <body>
 <div class="app">
@@ -26,8 +26,8 @@
     </div>
     <div class="chips">
       <button class="chip active" data-cat="ALL">TUTTI <span class="n">0</span></button>
-      <button class="chip" data-cat="REG">REG <span class="n">0</span></button>
       <button class="chip" data-cat="RV">RV <span class="n">0</span></button>
+      <button class="chip" data-cat="REG">REG <span class="n">0</span></button>
       <button class="chip" data-cat="SFM">SFM <span class="n">0</span></button>
       <button class="chip" data-cat="SUB">SUB <span class="n">0</span></button>
       <button class="chip" data-cat="MXP">MXP <span class="n">0</span></button>
@@ -37,14 +37,12 @@
   </aside>
   <main class="mapwrap">
     <div id="map" class="map"></div>
-    <div class="map-toolbar">
-      <button class="map-btn" id="searchBtn">⌕ RICERCA TRENO</button>
-    </div>
+    <div class="map-toolbar"><button class="map-btn" id="searchBtn">⌕ RICERCA TRENO</button></div>
     <div class="search-panel" id="searchPanel"><input id="searchInput" placeholder="Numero treno, linea, stazione…"><div class="search-results" id="searchResults"></div></div>
     <div class="legend"><span><i style="background:#39ff8e"></i>0–4 min</span><span><i style="background:#ffb020"></i>5–30 min</span><span><i style="background:#ff4d4d"></i>&gt;30 min</span><span><i style="background:#91a0ad"></i>realtime n/d</span><span><i style="background:#ffbd2e"></i>RV</span></div>
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="/app.js?v=20260825-regional3"></script>
+<script src="/app.js?v=20260825-regional4"></script>
 </body>
 </html>
