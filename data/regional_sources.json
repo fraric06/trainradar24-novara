@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "regions": {
+    "PIE": {
+      "name": "Piemonte",
+      "static": {
+        "provider": "Regione Piemonte / RFI",
+        "format": "GTFS",
+        "url": "https://api.smartdatanet.it/api/ServizioProgrammatoDelTrasportoPubblicoRegionePiemonteTreniRegionali_5188/attachment/5187/1/GTFS_RAIL_IT_PIE.zip"
+      },
+      "scope": ["Trenitalia regionali", "SFM Torino"]
+    },
+    "LOM": {
+      "name": "Lombardia",
+      "static": {
+        "provider": "Trenord / Regione Lombardia",
+        "format": "GTFS",
+        "catalog": "https://www.dati.lombardia.it/Mobilit-e-trasporti/Orario-Ferroviario-Regionale-Gtfs/3z4k-mxz9"
+      },
+      "realtime": {
+        "provider": "Trenord",
+        "format": "GTFS-RT",
+        "catalog": "https://www.e015.regione.lombardia.it/site/api-detail?id=382"
+      },
+      "scope": ["Trenord regionali", "suburbani", "Malpensa Express"]
+    }
+  },
+  "regionalExpress": {
+    "operator": "Trenitalia",
+    "category": "RV",
+    "name": "Regionali Veloci Torino–Milano",
+    "corridor": ["Torino Porta Nuova", "Torino Porta Susa", "Chivasso", "Santhià", "Vercelli", "Novara", "Magenta", "Rho", "Milano Centrale"],
+    "trainNumbersKnownFrom2026Schedule": [2026, 2027, 2028, 2029],
+    "note": "Il catalogo RV va alimentato dal GTFS/orario ufficiale corrente; non dedurre numeri commerciali dai trip_id."
+  }
+}
