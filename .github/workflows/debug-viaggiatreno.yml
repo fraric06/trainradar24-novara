@@ -1,0 +1,51 @@
+name: Debug ViaggiaTreno Piemonte
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe ViaggiaTreno Piemonte APIs
+        run: |
+          node <<'NODE'
+          const http=require('http'), https=require('https');
+          const bases=[
+            'http://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno',
+            'https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno'
+          ];
+          function get(url){return new Promise((resolve,reject)=>{
+            const u=new URL(url), c=u.protocol==='http:'?http:https;
+            const r=c.get(u,{headers:{'User-Agent':'TrainRadar24-debug/1.0','Accept':'application/json,text/plain,*/*'}},res=>{
+              let b=''; res.setEncoding('utf8'); res.on('data',x=>b+=x); res.on('end',()=>resolve({status:res.statusCode,body:b,headers:res.headers}));
+            });
+            r.setTimeout(20000,()=>r.destroy(new Error('timeout'))); r.on('error',reject);
+          })}
+          const parse=x=>{try{return JSON.parse(x)}catch{return null}};
+          const findNums=(v,out=[])=>{if(!v||typeof v!=='object')return out;if(Array.isArray(v)){v.forEach(x=>findNums(x,out));return out}if(v.numeroTreno!=null)out.push(v.numeroTreno);Object.values(v).forEach(x=>findNums(x,out));return out};
+          (async()=>{
+            for(const base of bases){
+              console.log(`\n=== BASE ${base} ===`);
+              for(const ep of ['/elencoStazioni/3','/elencoTratte/3/8/0/false/0']){
+                try{const r=await get(base+ep),d=parse(r.body);console.log(ep,'HTTP',r.status,'bytes',r.body.length,'array',Array.isArray(d),'count',Array.isArray(d)?d.length:'-');if(ep.includes('elencoTratte')&&Array.isArray(d))console.log('occupied',d.filter(x=>x&&x.occupata).length);}catch(e){console.log(ep,'ERROR',e.message)}
+              }
+            }
+            const base='https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno';
+            try{
+              const sr=await get(base+'/elencoStazioni/3'), stations=parse(sr.body)||[];
+              const usable=stations.filter(s=>s&&(s.codiceStazione||s.codStazione)&&Number.isFinite(Number(s.lat))&&Number.isFinite(Number(s.lon))).slice(0,12);
+              console.log('\n=== BOARD SAMPLE === stations=',stations.length,'usable=',usable.length);
+              let trains=0;
+              for(const s of usable){for(const kind of ['partenze','arrivi']){try{const dt=encodeURIComponent(new Date().toString());const r=await get(`${base}/${kind}/${encodeURIComponent(s.codiceStazione||s.codStazione)}/${dt}`);const d=parse(r.body);const n=Array.isArray(d)?d.filter(x=>x&&x.numeroTreno!=null):[];trains+=n.length;console.log(kind,s.codiceStazione||s.codStazione,s.nomeLungo||s.nomeBreve,'HTTP',r.status,'trains',n.length);}catch(e){console.log(kind,s.codiceStazione||s.codStazione,'ERROR',e.message)}}}
+              console.log('board trains sample total=',trains);
+            }catch(e){console.log('BOARD ERROR',e.message)}
+            try{
+              const tr=parse((await get(base+'/elencoTratte/3/8/0/false/0')).body)||[], occ=tr.filter(x=>x&&x.occupata);
+              console.log('\n=== OCCUPIED DETAIL SAMPLE === totalSegments=',tr.length,'occupied=',occ.length);
+              for(const s of occ.slice(0,10)){const ep=`/dettagliTratta/3/${encodeURIComponent(s.trattaAB||0)}/${encodeURIComponent(s.trattaBA||0)}/0/false`;try{const r=await get(base+ep),d=parse(r.body),nums=findNums(d);console.log('segment',s.nodoA,s.nodoB,'AB',s.trattaAB,'BA',s.trattaBA,'HTTP',r.status,'bytes',r.body.length,'trainNums',nums.slice(0,20));}catch(e){console.log('segment',s.nodoA,s.nodoB,'ERROR',e.message)}}
+            }catch(e){console.log('DETAIL ERROR',e.message)}
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
