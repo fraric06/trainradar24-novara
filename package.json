@@ -1,7 +1,7 @@
 {
   "name": "trainradar24-novara-service",
-  "version": "1.1.0",
-  "description": "TrainRadar24 Piemonte + Lombardia",
+  "version": "1.2.0",
+  "description": "TrainRadar24 — copertura ferroviaria italiana regionale + realtime nazionale",
   "main": "server.js",
   "scripts": {
     "start": "node bootstrap.js"
