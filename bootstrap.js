@@ -18,5 +18,5 @@ function byRegion(trips){const m=new Map();for(const t of trips||[])if(t.region)
   fs.writeFileSync(localPath,JSON.stringify([...keep,...regional]));
   console.log(`TrainRadar24: ${keep.length} locali + ${regional.length} regionali`);
   console.log('Finestra visualizzazione: ±5 minuti');
-  require('./server-national-v3');
+  require('./server-national-v4');
 })();
