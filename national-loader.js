@@ -1,16 +1,168 @@
 process.env.TZ='Europe/Rome';
-const fs=require('fs'),path=require('path'),AdmZip=require('adm-zip'),https=require('https'),http=require('http');
-const ROOT=__dirname,CACHE=path.join(ROOT,'data','national-trips.json');
-const STATIC_URL='https://proxy.busone.app/trenitalia/gtfs.zip';
-const RT_URL='https://proxy.busone.app/trenitalia/gtfs-rt/trip-updates.json';
-function download(url,redirects=0){return new Promise((resolve,reject)=>{if(redirects>6)return reject(new Error('troppi redirect'));const u=new URL(url),client=u.protocol==='http:'?http:https;const req=client.get(u,{headers:{'User-Agent':'TrainRadar24-Nazionale/1.1','Accept':'application/zip,application/json,text/plain,*/*'}},res=>{if([301,302,303,307,308].includes(res.statusCode)&&res.headers.location){res.resume();return resolve(download(new URL(res.headers.location,url).toString(),redirects+1))}if(res.statusCode<200||res.statusCode>=300){res.resume();return reject(new Error(`HTTP ${res.statusCode}`))}const chunks=[];res.on('data',c=>chunks.push(c));res.on('end',()=>resolve(Buffer.concat(chunks)))});req.setTimeout(300000,()=>req.destroy(new Error('timeout 300s')));req.on('error',reject)})}
-function csv(text){const rows=[];let row=[],cell='',quoted=false;for(let i=0;i<text.length;i++){const c=text[i],n=text[i+1];if(quoted){if(c==='"'&&n==='"'){cell+='"';i++}else if(c==='"')quoted=false;else cell+=c}else if(c==='"')quoted=true;else if(c===','){row.push(cell);cell=''}else if(c==='\n'){row.push(cell.replace(/\r$/,''));rows.push(row);row=[];cell=''}else cell+=c}if(cell.length||row.length){row.push(cell);rows.push(row)}if(!rows.length)return[];const head=rows[0].map(x=>x.replace(/^\uFEFF/,'').trim());return rows.slice(1).map(r=>Object.fromEntries(head.map((h,i)=>[h,r[i]??''])))}
-function file(zip,name){try{const e=zip.getEntry(name);return e?e.getData().toString('utf8'):''}catch{return''}}
-function minTime(v){const m=String(v||'').match(/^(\d+):(\d{2})/);return m?Number(m[1])*60+Number(m[2]):null}
-function today(){const d=new Date();return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`}
-function activeServices(calendar,dates){const d=new Date(),day=['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][d.getDay()],key=today(),out=new Set();for(const r of calendar)if(String(r.start_date)<=key&&String(r.end_date)>=key&&r[day]==='1')out.add(r.service_id);for(const r of dates)if(String(r.date)===key){if(String(r.exception_type)==='1')out.add(r.service_id);if(String(r.exception_type)==='2')out.delete(r.service_id)}return out}
-function classify(route,trip,names){const s=`${trip.train_category||''} ${trip.trip_short_name||''} ${trip.trip_headsign||''} ${route.route_short_name||''} ${route.route_long_name||''}`.toUpperCase();const n=(names||[]).join(' ').toUpperCase();if(/FRECCIAROSSA|FRECCIARGENTO|FRECCIABIANCA|FRECCIA/.test(s)||/\bAV\b/.test(s)||['101'].includes(String(route.route_type)))return'AV';if(/INTERCITY|ICN|INTERCITY NOTTE/.test(s)||/\bIC\b/.test(s)||['102','105'].includes(String(route.route_type)))return'IC';if(/REGIONALE VELOCE|\bRV\b/.test(s)||['103','106'].includes(String(route.route_type))||((/TORINO/.test(s)||/TORINO/.test(n))&&(/MILANO/.test(s)||/MILANO/.test(n))))return'RV';return'REG'}
-function normalize(buf){const z=new AdmZip(buf),routes=csv(file(z,'routes.txt')),stops=csv(file(z,'stops.txt')),trips=csv(file(z,'trips.txt')),stopTimes=csv(file(z,'stop_times.txt')),calendar=csv(file(z,'calendar.txt')),dates=csv(file(z,'calendar_dates.txt')),active=activeServices(calendar,dates),stopMap=new Map(stops.map(s=>[s.stop_id,s])),routeMap=new Map(routes.map(r=>[r.route_id,r])),byTrip=new Map(),out=[];for(const s of stopTimes){if(!byTrip.has(s.trip_id))byTrip.set(s.trip_id,[]);byTrip.get(s.trip_id).push(s)}const railTypes=new Set(['2',...Array.from({length:18},(_,i)=>String(100+i))]);for(const t of trips){if(t.service_id&&active.size&&!active.has(t.service_id))continue;const rt=routeMap.get(t.route_id)||{};if(rt.route_type&&!railTypes.has(String(rt.route_type)))continue;const ss=(byTrip.get(t.trip_id)||[]).sort((a,b)=>Number(a.stop_sequence)-Number(b.stop_sequence));if(ss.length<2)continue;const stopsOut=ss.map(s=>{const p=stopMap.get(s.stop_id)||{},arr=minTime(s.arrival_time),dep=minTime(s.departure_time);return{id:s.stop_id,name:p.stop_name||s.stop_id,lat:Number(p.stop_lat),lon:Number(p.stop_lon),arr:s.arrival_time,dep:s.departure_time,arr_min:arr,dep_min:dep}}).filter(s=>Number.isFinite(s.lat)&&Number.isFinite(s.lon)&&s.arr_min!==null&&s.dep_min!==null);if(stopsOut.length<2)continue;const short=String(t.trip_short_name||t.trip_headsign||'').trim();const category=classify(rt,t,stopsOut.map(x=>x.name));out.push({trip_id:`national-${t.trip_id}`,source_trip_id:t.trip_id,route:rt.route_short_name||rt.route_id,route_name:rt.route_long_name||rt.route_short_name||rt.route_id,category,train_number:short||null,region:'nazionale',operator:'Trenitalia',dep:stopsOut[0].dep,arr:stopsOut.at(-1).arr,dep_min:stopsOut[0].dep_min,stops:stopsOut})}return out}
-async function load(){try{const buf=await download(STATIC_URL);if(buf.length<10000)throw new Error('GTFS nazionale vuoto');const trips=normalize(buf);if(!trips.length)throw new Error('GTFS nazionale: nessuna corsa ferroviaria valida per oggi');const payload={generatedAt:new Date().toISOString(),source:STATIC_URL,trips};fs.writeFileSync(CACHE,JSON.stringify(payload));console.log(`GTFS nazionale Trenitalia: ${trips.length} corse ferroviarie`);return payload}catch(e){console.error('GTFS nazionale non disponibile:',e.message);if(fs.existsSync(CACHE)){try{const cached=JSON.parse(fs.readFileSync(CACHE,'utf8'));if(Array.isArray(cached.trips)&&cached.trips.length)return cached}catch{}}return{generatedAt:new Date().toISOString(),source:STATIC_URL,trips:[]}}}
-async function realtime(){try{const buf=await download(RT_URL);const text=buf.toString('utf8');return JSON.parse(text)}catch(e){console.error('GTFS-RT nazionale non disponibile:',e.message);return null}}
-module.exports={load,realtime,CACHE,RT_URL};
+const fs=require('fs'),path=require('path'),https=require('https'),http=require('http');
+
+const ROOT=__dirname;
+const DATA_DIR=path.join(ROOT,'data');
+const STATIONS_CACHE=path.join(DATA_DIR,'national-stations.json');
+const LIVE_CACHE=path.join(DATA_DIR,'national-live.json');
+const VT_BASE='https://www.viaggiatreno.it/infomobilita/resteasy/viaggiatreno';
+const CACHE_TTL_MS=24*60*60*1000;
+const BOARD_SCAN_MS=5*60*1000;
+const DISPLAY_WINDOW=5;
+const CONCURRENCY=12;
+const TRAIN_CONCURRENCY=18;
+
+let stations=[];
+let stationMap=new Map();
+let live=new Map();
+let lastScan=0;
+let scanPromise=null;
+let lastError=null;
+let lastUpdated=null;
+
+function request(url,timeout=12000,redirects=0){
+  return new Promise((resolve,reject)=>{
+    if(redirects>5)return reject(new Error('troppi redirect'));
+    const u=new URL(url),client=u.protocol==='http:'?http:https;
+    const req=client.get(u,{headers:{'User-Agent':'TrainRadar24-Nazionale/10.0','Accept':'application/json,text/plain,*/*','Connection':'close'}},res=>{
+      if([301,302,303,307,308].includes(res.statusCode)&&res.headers.location){res.resume();return resolve(request(new URL(res.headers.location,u).toString(),timeout,redirects+1));}
+      let body='';res.setEncoding('utf8');res.on('data',c=>body+=c);res.on('end',()=>{
+        if(res.statusCode<200||res.statusCode>=300)return reject(new Error(`HTTP ${res.statusCode}`));
+        resolve(body);
+      });
+    });
+    req.setTimeout(timeout,()=>req.destroy(new Error(`timeout ${timeout}ms`)));
+    req.on('error',reject);
+  });
+}
+async function json(url){const body=await request(url);return JSON.parse(body);}
+async function mapLimit(items,limit,fn){
+  const out=new Array(items.length);let next=0;
+  async function worker(){while(true){const i=next++;if(i>=items.length)return;try{out[i]=await fn(items[i],i);}catch(e){out[i]={error:e.message};}}}
+  await Promise.all(Array.from({length:Math.min(limit,items.length)},worker));
+  return out;
+}
+function save(file,data){try{fs.mkdirSync(DATA_DIR,{recursive:true});fs.writeFileSync(file,JSON.stringify(data));}catch(e){console.error('cache write:',e.message)}}
+function loadFile(file){try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return null}}
+function now(){return Date.now();}
+function midnightMs(){const d=new Date();d.setHours(0,0,0,0);return d.getTime();}
+function boardDate(){return new Date().toString().replace(/ \([^)]*\)$/,'');}
+function stationName(s){return s?.localita?.nomeLungo||s?.localita?.nomeBreve||s?.nomeCitta||s?.codiceStazione||s?.codStazione||'';}
+function category(raw){
+  const s=String(raw?.categoria||raw?.categoriaDescrizione||raw?.compNumeroTreno||'').toUpperCase();
+  if(/FR|FA|FB|FRECCIA|AV/.test(s))return'AV';
+  if(/ICN|INTERCITY/.test(s)||/^IC\b/.test(s))return'IC';
+  if(/RV|REGIONALE VELOCE/.test(s))return'RV';
+  return'REG';
+}
+function numberOf(raw){return String(raw?.numeroTreno??raw?.train_number??'').trim();}
+function ts(v){const n=Number(v);return Number.isFinite(n)&&n>100000000000?n:null;}
+function stopTime(s){return ts(s?.programmata)||ts(s?.partenza_teorica)||ts(s?.arrivo_teorico)||null;}
+function delayOf(s){const n=Number(s);return Number.isFinite(n)?Math.round(n):0;}
+function normStops(stops){
+  return (Array.isArray(stops)?stops:[]).map((s,i)=>{
+    const code=s?.id||s?.codiceStazione||'';
+    const meta=stationMap.get(code)||{};
+    const scheduled=stopTime(s);
+    const lat=Number(meta.lat),lon=Number(meta.lon);
+    return {id:code,name:s?.stazione||meta.name||code,lat,lon,scheduled,arr:ts(s?.arrivo_teorico),dep:ts(s?.partenza_teorica),arrReal:ts(s?.arrivoReale),depReal:ts(s?.partenzaReale),delay:delayOf(s?.ritardo),delayArr:delayOf(s?.ritardoArrivo),delayDep:delayOf(s?.ritardoPartenza),type:s?.tipoFermata||'F',actualType:Number(s?.actualFermataType??1),seq:i};
+  }).filter(s=>s.id&&Number.isFinite(s.lat)&&Number.isFinite(s.lon)&&s.scheduled);
+}
+function effectiveSchedule(stops,globalDelay){
+  return stops.map(s=>({...s,effective:s.scheduled+Math.max(0,(s.delay||0))*60000}));
+}
+function interpolate(stops,globalDelay,nowMs){
+  if(stops.length<2)return null;
+  const ss=effectiveSchedule(stops,globalDelay);
+  const first=ss[0],last=ss[ss.length-1];
+  if(nowMs<first.effective-DISPLAY_WINDOW*60000)return{status:'not_departed',lat:first.lat,lon:first.lon,nextStop:first.name,progress:0};
+  if(nowMs>last.effective+DISPLAY_WINDOW*60000)return null;
+  if(nowMs>=last.effective)return{status:'arrived',lat:last.lat,lon:last.lon,nextStop:'—',progress:100};
+  for(let i=0;i<ss.length-1;i++){
+    const a=ss[i],b=ss[i+1],ta=a.effective,tb=b.effective;
+    if(nowMs>=ta&&nowMs<=tb){
+      const q=Math.max(0,Math.min(1,(nowMs-ta)/Math.max(1,tb-ta)));
+      return{status:'running',lat:a.lat+(b.lat-a.lat)*q,lon:a.lon+(b.lon-a.lon)*q,nextStop:b.name,progress:Math.round(q*100)};
+    }
+  }
+  return null;
+}
+function keepWindow(trip,nowMs){
+  const dep=trip.stops?.[0]?.scheduled,arr=trip.stops?.at(-1)?.scheduled;
+  if(!dep||!arr)return false;
+  const d=dep+Math.max(0,trip.delay_min||0)*60000,a=arr+Math.max(0,trip.delay_min||0)*60000;
+  return nowMs>=d-DISPLAY_WINDOW*60000&&nowMs<=a+DISPLAY_WINDOW*60000;
+}
+async function loadStations(){
+  const cached=loadFile(STATIONS_CACHE);
+  if(cached?.saved&&Array.isArray(cached.stations)&&now()-cached.saved<CACHE_TTL_MS){stations=cached.stations;stationMap=new Map(cached.coords||[]);return;}
+  let main=[];
+  try{main=await json(`${VT_BASE}/elencoStazioni/0`);}catch(e){if(cached?.stations){stations=cached.stations;stationMap=new Map(cached.coords||[]);return;}throw e;}
+  const by=new Map();
+  for(const s of Array.isArray(main)?main:[]){const code=s?.codiceStazione||s?.codStazione||s?.localita?.id;if(code)by.set(code,{code,name:stationName(s),lat:Number(s.lat),lon:Number(s.lon),type:Number(s.tipoStazione||0)});}
+  const regions=Array.from({length:20},(_,i)=>i+1);
+  const regional=await mapLimit(regions,5,async r=>{try{return await json(`${VT_BASE}/elencoStazioni/${r}`);}catch{return[];}});
+  for(const arr of regional){for(const s of Array.isArray(arr)?arr:[]){const code=s?.codiceStazione||s?.codStazione||s?.localita?.id;if(!code)continue;by.set(code,{code,name:stationName(s),lat:Number(s.lat),lon:Number(s.lon),type:Number(s.tipoStazione||0)});}}
+  stationMap=new Map();for(const [code,s] of by){if(Number.isFinite(s.lat)&&Number.isFinite(s.lon))stationMap.set(code,s);}
+  stations=[...new Map((Array.isArray(main)?main:[]).map(s=>{const code=s?.codiceStazione||s?.codStazione||s?.localita?.id;return [code,{code,name:stationName(s),lat:Number(s.lat),lon:Number(s.lon),type:Number(s.tipoStazione||0)}];}).filter(([k])=>k)).values()];
+  if(stations.length<80)stations=[...stationMap.values()].filter(s=>s.type!==4).slice(0,260);
+  save(STATIONS_CACHE,{saved:now(),stations,coords:[...stationMap.entries()]});
+}
+async function board(code,kind){
+  const endpoint=kind==='dep'?'partenze':'arrivi';
+  const url=`${VT_BASE}/${endpoint}/${encodeURIComponent(code)}/${encodeURIComponent(boardDate())}`;
+  try{return await json(url);}catch(e){return[];}
+}
+async function discover(){
+  const seen=new Map();
+  const results=await mapLimit(stations,CONCURRENCY,async s=>{
+    const arr=await Promise.all([board(s.code,'dep'),board(s.code,'arr')]);
+    return arr.flat().map(x=>({...x,_boardStation:s.code,_boardName:s.name}));
+  });
+  for(const batch of results){for(const raw of Array.isArray(batch)?batch:[]){
+    const n=numberOf(raw),origin=raw?.codOrigine||raw?.codLocOrig||'';
+    const day=String(raw?.dataPartenzaTreno||raw?.millisDataPartenza||midnightMs());
+    if(!n||!origin)continue;
+    const key=`${n}|${origin}|${day}`;
+    const old=seen.get(key);if(!old||Number(raw.ritardo||0)>Number(old.ritardo||0)||raw.circolante&&!old.circolante)seen.set(key,raw);
+  }}
+  return [...seen.values()];
+}
+async function detail(raw){
+  const n=numberOf(raw),origin=raw?.codOrigine||raw?.codLocOrig||'',day=Number(raw?.dataPartenzaTreno||raw?.millisDataPartenza||midnightMs());
+  if(!n||!origin||!Number.isFinite(day))return null;
+  try{
+    const d=await json(`${VT_BASE}/andamentoTreno/${encodeURIComponent(origin)}/${encodeURIComponent(n)}/${day}`);
+    const rawStops=Array.isArray(d?.fermate)?d.fermate:[];
+    const stops=normStops(rawStops);
+    if(stops.length<2)return null;
+    const delay=Math.max(0,delayOf(d?.ritardo));
+    const p=interpolate(stops,delay,now());
+    if(!p)return null;
+    const cancelled=String(d?.tipoTreno||'').toUpperCase()==='ST'||Number(d?.provvedimento)===1;
+    const key=`national-${n}-${origin}-${day}`;
+    return {trip_id:key,source_trip_id:`${n}-${origin}-${day}`,route:category(raw),route_name:`${d?.origine||stops[0].name} → ${d?.destinazione||stops.at(-1).name}`,category:category(d),region:'nazionale',operator:'Trenitalia/ViaggiaTreno',dep:new Date(stops[0].scheduled).toISOString(),arr:new Date(stops.at(-1).scheduled).toISOString(),origin:d?.origine||stops[0].name,destination:d?.destinazione||stops.at(-1).name,train_number:n,delay_min:delay,delay_known:true,delay_status:delay<5?'on_time':delay<=30?'delayed':'severe_delay',realtime:true,realtime_source:'ViaggiaTreno',realtime_updated_at:new Date().toISOString(),cancelled,stops,lat:p.lat,lon:p.lon,status:p.status,nextStop:p.nextStop,progress:p.progress,etaMin:Math.max(0,Math.round((stops.at(-1).scheduled-now())/60000))};
+  }catch{return null;}
+}
+async function scan(){
+  try{
+    await loadStations();
+    const discovered=await discover();
+    const details=await mapLimit(discovered,TRAIN_CONCURRENCY,detail);
+    const next=new Map();
+    for(const t of details)if(t)next.set(t.trip_id,t);
+    for(const [id,t] of live){if(now()-Date.parse(t.realtime_updated_at||0)<7*60*1000&&keepWindow(t,now()))next.set(id,t);}
+    live=next;lastScan=now();lastUpdated=new Date().toISOString();lastError=null;
+    save(LIVE_CACHE,{saved:lastScan,trips:[...live.values()]});
+    console.log(`ViaggiaTreno nazionale: ${discovered.length} corse scoperte, ${live.size} treni visibili`);
+    return [...live.values()];
+  }catch(e){lastError=e.message;console.error('ViaggiaTreno nazionale:',e.message);const cached=loadFile(LIVE_CACHE);if(cached?.trips)live=new Map(cached.trips.map(t=>[t.trip_id,t]));return [...live.values()];}
+}
+async function load(){
+  if(!scanPromise&&(now()-lastScan>=BOARD_SCAN_MS||!live.size))scanPromise=scan().finally(()=>{scanPromise=null;});
+  if(scanPromise&&(!live.size||now()-lastScan>=BOARD_SCAN_MS))await scanPromise;
+  const current=[...live.values()].filter(t=>keepWindow(t,now()));
+  return {generatedAt:new Date().toISOString(),source:'ViaggiaTreno realtime nazionale',trips:current,status:{stations:stations.length,liveTrains:current.length,lastScan:lastUpdated,error:lastError,displayWindowMinutes:DISPLAY_WINDOW}};
+}
+async function realtime(){return {available:true,source:'ViaggiaTreno realtime nazionale'};}
+module.exports={load,realtime,CACHE:LIVE_CACHE,RT_URL:VT_BASE,DISPLAY_WINDOW};
