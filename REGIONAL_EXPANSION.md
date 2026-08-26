@@ -1,30 +1,23 @@
-# TrainRadar24 — Piemonte + Lombardia
+# TrainRadar24 — copertura ferroviaria italiana
 
-Roadmap tecnica per l'espansione regionale.
+## Architettura regionale
+Il caricamento statico non è più limitato a Piemonte e Lombardia. `regional-loader.js` legge `data/regional_sources.json`, gestisce tutte le 20 regioni italiane e costruisce un unico dataset normalizzato.
 
-## Scope
-- Piemonte: SFR, SFM e servizi regionali disponibili nei GTFS regionali.
-- Lombardia: Trenord, Malpensa Express e servizi regionali presenti nel GTFS regionale.
-- Regionali Veloci Torino–Milano: includere esplicitamente come categoria `RV/RE` quando presenti nelle fonti ufficiali, senza confonderli con gli AV.
+### Regioni gestite
+PIE, VDA, LOM, LIG, TAA, VEN, FVG, EMR, TOS, UMB, MAR, LAZ, ABR, MOL, CAM, PUG, BAS, CAL, SIC, SAR.
 
-## Fonti programmate
-- Piemonte: GTFS ferroviario regionale della Regione Piemonte.
-- Lombardia: GTFS ferroviario regionale pubblicato da Regione Lombardia/Trenord.
+### Priorità delle fonti
+1. GTFS regionale ufficiale quando esiste un endpoint stabile configurato.
+2. Feed Trenitalia nazionale come fallback per le regioni senza endpoint regionale stabile.
+3. Cache dell'ultimo dataset valido se una fonte temporaneamente non risponde.
 
-## Modello dati previsto
-Ogni corsa regionale deve avere: regione, operatore, route_id, trip_id, numero commerciale, categoria servizio, origine, destinazione, fermate, stop_times, shape/polilinea quando disponibile, calendario.
+Il fallback nazionale viene partizionato per regione tramite le coordinate delle fermate e le bounding box regionali. Questo non sostituisce nel lungo periodo i GTFS ufficiali degli operatori regionali: serve a evitare che la mappa resti vuota fuori da Piemonte/Lombardia mentre le fonti regionali vengono aggiunte.
+
+## Modello dati
+Ogni corsa normalizzata contiene regione, operatore, route, categoria, numero commerciale quando disponibile, origine, destinazione, fermate, orari e coordinate. Il numero commerciale non viene derivato dal `trip_id`.
 
 ## Realtime
-Il realtime deve essere separato dal programmato e associato alla corsa tramite numero commerciale + contesto di corsa (stazione/timestamp), mantenendo l'ultimo dato valido per evitare sfarfallii. Per Trenord è disponibile un'API E015 GTFS Static e Real-time che espone ritardi effettivi, ritardi previsti e soppressioni.
+Il realtime rimane separato dal GTFS statico. `national-loader-v4.js` interroga ViaggiaTreno e associa il realtime alle corse tramite numero treno e contesto della partenza. Il GTFS regionale serve per ricostruire la posizione quando il realtime diretto non è disponibile.
 
-## Visualizzazione
-- rete ferroviaria reale;
-- treni attivi solamente sulla rete ferroviaria;
-- colori ritardo: verde 0–4 min, giallo 5–30 min, rosso >30 min;
-- fallback neutro quando il realtime non è disponibile;
-- filtri Regione, operatore, categoria e linea;
-- ricerca per numero treno/stazione;
-- geolocalizzazione utente.
-
-## Nota RV Torino–Milano
-I Regionali Veloci Torino–Milano sono inclusi nello scope. Il loro numero commerciale deve provenire dal dato ufficiale della corsa e non essere derivato da trip_id GTFS.
+## Obiettivo operativo
+La mappa deve mostrare treni su scala italiana, non soltanto il corridoio Novara–Milano. L'espansione regionale è incrementale: appena viene trovata una fonte ufficiale stabile per una regione, va inserita in `data/regional_sources.json` e prende automaticamente priorità sul fallback nazionale.
