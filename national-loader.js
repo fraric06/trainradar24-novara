@@ -50,8 +50,8 @@ function boardDate(){return new Date().toString().replace(/ \([^)]*\)$/,'');}
 function stationName(s){return s?.localita?.nomeLungo||s?.localita?.nomeBreve||s?.nomeCitta||s?.codiceStazione||s?.codStazione||'';}
 function category(raw){
   const s=String(raw?.categoria||raw?.categoriaDescrizione||raw?.compNumeroTreno||'').toUpperCase();
-  if(/FR|FA|FB|FRECCIA|AV/.test(s))return'AV';
-  if(/ICN|INTERCITY/.test(s)||/^IC\b/.test(s))return'IC';
+  if(/\b(FR|FA|FB|AV)\b|FRECCIAROSSA|FRECCIARGENTO|FRECCIABIANCA|FRECCIA/.test(s))return'AV';
+  if(/ICN|INTERCITY|\bIC\b/.test(s))return'IC';
   if(/RV|REGIONALE VELOCE/.test(s))return'RV';
   return'REG';
 }
@@ -69,7 +69,8 @@ function normStops(stops){
   }).filter(s=>s.id&&Number.isFinite(s.lat)&&Number.isFinite(s.lon)&&s.scheduled);
 }
 function effectiveSchedule(stops,globalDelay){
-  return stops.map(s=>({...s,effective:s.scheduled+Math.max(0,(s.delay||0))*60000}));
+  const fallback=Math.max(0,Number(globalDelay)||0)*60000;
+  return stops.map(s=>({...s,effective:s.scheduled+fallback}));
 }
 function interpolate(stops,globalDelay,nowMs){
   if(stops.length<2)return null;
