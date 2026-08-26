@@ -18,5 +18,5 @@ function byRegion(trips){const m=new Map();for(const t of trips||[])if(t.region)
   console.log(`TrainRadar24: ${legacy.length} legacy + ${regional.length} regionali da ${counts.size} regioni`);
   console.log(`Feed regionale: ${fresh.length?'FRESH':'CACHE/FALLBACK'}`);
   console.log('Finestra visualizzazione: ±5 minuti');
-  require('./server-national-v4');
+  require('./server-national-v5');
 })();
