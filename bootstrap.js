@@ -17,9 +17,9 @@ function byRegion(trips){const m=new Map();for(const t of trips||[])if(t.region)
     console.log(`GTFS ${region}: ${chosen.length} corse`);
   }
   const national=Array.isArray(nationalResult.trips)?nationalResult.trips:[];
-  const keep=local.filter(t=>!t.region);
+  const keep=local.filter(t=>!t.region||t.region==='piemonte'||t.region==='lombardia');
   fs.writeFileSync(localPath,JSON.stringify([...keep,...regional,...national]));
   console.log(`TrainRadar24: ${keep.length} locali + ${regional.length} regionali + ${national.length} nazionali statiche`);
   console.log('Finestra visualizzazione realtime: ±5 minuti');
-  require('./server-national');
+  require('./server-national-v2');
 })();
