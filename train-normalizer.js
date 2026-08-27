@@ -1,7 +1,8 @@
 function clean(v){return String(v??'').trim().replace(/\s+/g,' ')}
 function key(v){return clean(v).toUpperCase().replace(/&NBSP;/g,' ')}
-function millis(v){const n=Number(v);return Number.isFinite(n)&&n>100000000000?n:null}
+function millis(v){const n=Number(v);if(!Number.isFinite(n))return null;if(n>1000000000000)return n;if(n>1000000000)return n*1000;return null}
 function fmt(ts){const n=millis(ts);return n?new Date(n).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Europe/Rome'}):null}
+function categoryGroup(code){const c=clean(code).toUpperCase();if(/^(EC|EN|NJ|RJ|TGV|THA|ICE|EIC|RJT|IC2|IR)/.test(c))return'INTL';if(/^(FR|FA|FB|AV)/.test(c))return'AV';if(/^IC/.test(c))return'IC';if(c==='RV')return'RV';if(/^SFM/.test(c))return'SFM';if(/^MXP/.test(c))return'MXP';return'REG'}
 function normalizeTrain(t){
   if(!t||typeof t!=='object')return t;
   const stops=Array.isArray(t.stops)?[...t.stops].filter(s=>s&&clean(s.name)).sort((a,b)=>(Number(a.seq)||0)-(Number(b.seq)||0)):[];
@@ -9,32 +10,20 @@ function normalizeTrain(t){
   const first=stops[0],last=stops.at(-1);
   let origin=clean(t.origin),destination=clean(t.destination);
   const foreignOrigin=clean(t.origin_foreign),foreignDestination=clean(t.destination_foreign);
-  const sameApiEndpoints=Boolean(first&&last&&key(first.name)!==key(last.name)&&origin&&destination&&key(origin)===key(destination));
-
-  // The first/last verified ViaggiaTreno stops win over a broken or partial
-  // summary pair. This specifically prevents impossible A -> A routes.
-  if(sameApiEndpoints){origin=clean(first.name);destination=clean(last.name);}
+  if((!origin||!destination||key(origin)===key(destination))&&first&&last&&key(first.name)!==key(last.name)){origin=clean(first.name);destination=clean(last.name)}
   if(foreignOrigin&&!names.has(key(foreignOrigin)))origin=foreignOrigin;
+  if(foreignDestination&&!names.has(key(foreignDestination)))destination=foreignDestination;
   if(!origin&&first)origin=clean(first.name);
-
-  // ViaggiaTreno's foreign fields are supplemental. Use a foreign destination
-  // only when it is genuinely outside the Italian stop sequence; this avoids the
-  // known Ventimiglia/Cuneo case where destinazioneEstera can be a border station.
-  if(foreignDestination&&!names.has(key(foreignDestination))&&last&&key(destination)===key(last.name))destination=foreignDestination;
   if(!destination&&last)destination=clean(last.name);
 
-  if(first&&last&&key(first.name)!==key(last.name)&&key(origin)===key(destination)){
-    origin=clean(first.name);destination=clean(last.name);
-    if(foreignOrigin&&!names.has(key(foreignOrigin)))origin=foreignOrigin;
-    if(foreignDestination&&!names.has(key(foreignDestination))&&key(destination)===key(last.name))destination=foreignDestination;
-  }
-
   let delay=Number.isFinite(Number(t.delay_min))?Math.round(Number(t.delay_min)):null;
+  const delayText=clean(t.delay_text);
+  if(delay===null&&/in\s*orario|puntuale|on\s*time/i.test(delayText))delay=0;
   if(delay===null){
     const measured=stops.filter(s=>Number.isFinite(Number(s.actual))&&Number.isFinite(Number(s.scheduled))).sort((a,b)=>Number(b.actual)-Number(a.actual));
-    if(measured.length){const s=measured[0];delay=Math.round((Number(s.actual)-Number(s.scheduled))/60000);}
+    if(measured.length){const s=measured[0];delay=Math.round((Number(s.actual)-Number(s.scheduled))/60000)}
   }
-  if(delay!==null){t.delay_min=delay;t.delay_known=true;t.delay_text=delay===0?'in orario':(delay>0?'+'+delay+' min':delay+' min');}
+  if(delay!==null){t.delay_min=delay;t.delay_known=true;t.delay_text=delay===0?'in orario':(delay>0?'+'+delay+' min':delay+' min')}
 
   let station=clean(t.last_detection_station);if(station==='--')station='';
   let at=millis(t.last_detection_at),time=clean(t.last_detection_time);
@@ -48,6 +37,7 @@ function normalizeTrain(t){
     }
   }
   t.origin=origin;t.destination=destination;t.route_name=`${origin} → ${destination}`;
+  t.category_group=categoryGroup(t.verified_category||t.category||'');
   t.last_detection_station=station||null;t.last_detection_at=at||null;t.last_detection_time=time||null;
   t.last_detection_text=station&&time?`${station} · ${time}`:station||time||null;
   t.route_verified_from_stops=Boolean(first&&last);
