@@ -1,7 +1,7 @@
 process.env.TZ='Europe/Rome';
 const express=require('express'),cors=require('cors'),fs=require('fs'),path=require('path');
 const national=require('./national-loader'),special=require('./special-realtime');
-const app=express();app.use(cors());app.use(express.static(path.join(__dirname,'public')));const PORT=process.env.PORT||3000;
+const app=express();app.use(cors());app.use((req,res,next)=>{if(req.query?.utm_source){const params=new URLSearchParams(req.query);params.delete('utm_source');const qs=params.toString();return res.redirect(302,req.path+(qs?'?'+qs:''))}next()});app.use(express.static(path.join(__dirname,'public')));const PORT=process.env.PORT||3000;
 const TRIPS=JSON.parse(fs.readFileSync(path.join(__dirname,'data','trips.json'),'utf8'));
 const ROUTE_NAMES={S6:'Novara – Milano Passante – Treviglio',R27:'Novara Nord – Saronno – Milano Cadorna',R25:'Mortara – Novara'};
 const MAX_VISIBLE=1000,DISPLAY_WINDOW_MIN=5,PIEMONTE_STATIC_STATIONS=new Set(['S00248','S00252','S00023','S01748','S01749','S00031','S00030','S00032']);
