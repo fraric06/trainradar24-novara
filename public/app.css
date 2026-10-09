@@ -23,3 +23,5 @@ body{background:#061329}
 .leaflet-popup-content-wrapper,.leaflet-popup-tip{background:#0d1f3b}
 .empty{color:#8fa7c3}
 @media(max-width:900px){.brand-logo{width:235px;height:54px;max-width:calc(100% - 45px)}}
+
+.search-item{display:block;width:100%;background:transparent;border:0;color:var(--text);text-align:left;font:inherit;line-height:1.5}.search-item b{color:var(--green)}
